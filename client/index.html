@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>La Casa Amarilla - Repostería y Pastelería Artesanal</title>
+    <meta name="description" content="Conchas gourmet, roles de canela y pasteles artesanales hechos a mano. Haz tu pedido fácil y rápido por WhatsApp." />
+    <meta name="theme-color" content="#d97706" />
+
+    <script>
+      (function () {
+        var stored = localStorage.getItem('casaAmarillaTheme');
+        var isDark = stored ? stored === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (isDark) document.documentElement.classList.add('dark');
+      })();
+    </script>
+
+    <!-- Open Graph: cómo se ve el link al compartirlo en WhatsApp/Instagram/Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="La Casa Amarilla - Repostería y Pastelería Artesanal" />
+    <meta property="og:description" content="Conchas gourmet, roles de canela y pasteles artesanales hechos a mano. Haz tu pedido fácil y rápido por WhatsApp." />
+    <meta property="og:image" content="https://lacasaamarilla.lat/logo.png" />
+    <meta property="og:url" content="https://lacasaamarilla.lat/" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
