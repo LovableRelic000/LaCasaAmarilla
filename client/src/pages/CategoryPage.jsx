@@ -7,6 +7,7 @@ import ProductCard from '../components/product/ProductCard';
 import ProductCardSkeleton from '../components/product/ProductCardSkeleton';
 import StatusMessage from '../components/StatusMessage';
 import ConchaBoxBuilder from '../components/conchas/ConchaBoxBuilder';
+import { ConchaIcon, TemporadaIcon } from '../components/icons/BakeryIcons';
 
 export default function CategoryPage({ products, onOpenProduct, loading, error, onRetry }) {
   const { category, subcategory, type } = useParams();
@@ -73,8 +74,9 @@ export default function CategoryPage({ products, onOpenProduct, loading, error, 
           <div className="flex items-center gap-2">
             <h1 className="font-display text-3xl font-bold text-ink">{pageTitle}</h1>
             {cat.isSeasonal && (
-              <span className="px-3 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-700 dark:text-amber-300">
-                Temporada
+              <span className="px-3 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-700 dark:text-amber-300 flex items-center gap-1">
+                <TemporadaIcon className="w-3.5 h-3.5" />
+                <span>Temporada</span>
               </span>
             )}
           </div>
@@ -89,7 +91,7 @@ export default function CategoryPage({ products, onOpenProduct, loading, error, 
             onClick={() => setShowConchaBuilder(true)}
             className="px-5 py-2.5 bg-gold hover:brightness-105 text-[#2B1B12] rounded-full font-bold text-xs sm:text-sm shadow-sm flex items-center gap-2 transition-transform transform hover:scale-105"
           >
-            <span>🍪</span>
+            <ConchaIcon className="w-4 h-4" />
             <span>Armar Caja de Conchas</span>
           </button>
         )}

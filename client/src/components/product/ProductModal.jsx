@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useCart } from '../../context/CartContext';
 import ConchaBoxBuilder from '../conchas/ConchaBoxBuilder';
+import { TemporadaIcon } from '../icons/BakeryIcons';
 
 export default function ProductModal({ product, onClose }) {
   const { addToCart } = useCart();
@@ -92,8 +93,9 @@ export default function ProductModal({ product, onClose }) {
           </button>
 
           {attributes.isSeasonal && (
-            <span className="absolute bottom-3 left-3 bg-amber-500 text-white font-bold text-xs uppercase px-3 py-1 rounded-full shadow-md tracking-wider flex items-center gap-1.5">
-              <span>🍂</span> Edición de Temporada
+            <span className="absolute bottom-3 left-3 bg-amber-600 text-white font-bold text-xs uppercase px-3 py-1 rounded-full shadow-md tracking-wider flex items-center gap-1.5">
+              <TemporadaIcon className="w-3.5 h-3.5" />
+              <span>Edición de Temporada</span>
             </span>
           )}
         </div>
@@ -113,18 +115,28 @@ export default function ProductModal({ product, onClose }) {
           {/* Avisos de anticipación o peso */}
           <div className="flex flex-wrap gap-2 mb-5">
             {attributes.hasWeight && attributes.weight && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-surface-2 text-ink-soft border border-border">
-                ⚖️ {attributes.weight}
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-surface-2 text-ink-soft border border-border">
+                <svg className="w-3.5 h-3.5 text-caramel" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v18M6 8l6-5 6 5M3 13l3-5 3 5a3 3 0 01-6 0zm12 0l3-5 3 5a3 3 0 01-6 0z" />
+                </svg>
+                <span>{attributes.weight}</span>
               </span>
             )}
             {attributes.requiresAdvanceNotice && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900">
-                ⏰ Requiere pedido con {attributes.advanceNoticeHours || 24}h de anticipación
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900">
+                <svg className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <circle cx="12" cy="12" r="9" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2" />
+                </svg>
+                <span>Requiere pedido con {attributes.advanceNoticeHours || 24}h de anticipación</span>
               </span>
             )}
             {attributes.hasMinOrder && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-surface-2 text-caramel border border-border">
-                📦 Venta por incrementos de {step} piezas
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-surface-2 text-caramel border border-border">
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+                <span>Venta por incrementos de {step} piezas</span>
               </span>
             )}
           </div>

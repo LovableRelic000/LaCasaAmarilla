@@ -93,6 +93,30 @@ export function saveStoredCategories(categories) {
   }
 }
 
+export const DEFAULT_FEATURED_CATEGORIES = ['conchas', 'panques', 'roscas', 'temporada'];
+const FEATURED_CATEGORIES_KEY = 'casaAmarillaFeaturedCategories';
+
+export function getFeaturedCategories() {
+  try {
+    const raw = localStorage.getItem(FEATURED_CATEGORIES_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed.slice(0, 4);
+    }
+  } catch (e) {
+    console.error('Error leyendo categorías destacadas:', e);
+  }
+  return DEFAULT_FEATURED_CATEGORIES;
+}
+
+export function saveFeaturedCategories(ids) {
+  try {
+    localStorage.setItem(FEATURED_CATEGORIES_KEY, JSON.stringify(ids.slice(0, 4)));
+  } catch (e) {
+    console.error('Error guardando categorías destacadas:', e);
+  }
+}
+
 export let CATEGORIES = getStoredCategories();
 
 // -------------------------------------------------------------------------

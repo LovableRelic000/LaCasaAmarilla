@@ -6,22 +6,12 @@ import ProductCard from '../components/product/ProductCard';
 import ProductCardSkeleton from '../components/product/ProductCardSkeleton';
 import StatusMessage from '../components/StatusMessage';
 import ConchaBoxBuilder from '../components/conchas/ConchaBoxBuilder';
-import { getStoredCategories } from '../data/store';
-
-const CATEGORY_EMOJIS = {
-  panques: '🧁',
-  roscas: '🍩',
-  conchas: '🍪',
-  'conchas-especialidad': '✨',
-  'pan-barra': '🍞',
-  'pan-hamburguesa': '🍔',
-  'pan-banquetes': '🍽️',
-  'pan-danes': '🥐',
-  temporada: '🍂',
-};
+import { getStoredCategories, getFeaturedCategories } from '../data/store';
+import { getCategoryIconComponent, ConchaIcon, TemporadaIcon } from '../components/icons/BakeryIcons';
 
 export default function HomePage({ products = [], onOpenProduct, loading, error, onRetry }) {
   const categories = getStoredCategories();
+  const featuredCatKeys = getFeaturedCategories();
   const [showConchaBuilder, setShowConchaBuilder] = useState(false);
 
   const activeProducts = products.filter((p) => p.status === 'active');
@@ -32,16 +22,23 @@ export default function HomePage({ products = [], onOpenProduct, loading, error,
 
   const conchaBoxProduct = products.find((p) => p.attributes?.isConchaBox || p.category === 'conchas');
 
+  // Filtramos únicamente las 4 categorías seleccionadas para mostrar en Inicio
+  const displayedCategories = featuredCatKeys
+    .map((key) => categories[key] ? [key, categories[key]] : null)
+    .filter(Boolean)
+    .slice(0, 4);
+
   return (
     <div>
       <HeroBanner />
 
       {/* BANNER ESPECIAL DE ARMA TU CAJA DE CONCHAS */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-10">
-        <div className="relative overflow-hidden bg-gradient-to-r from-amber-900 via-yellow-950 to-stone-900 text-white rounded-3xl p-6 sm:p-10 shadow-xl border border-gold/30">
+        <div className="relative overflow-hidden bg-gradient-to-r from-[#2A1810] via-[#3D2314] to-[#1F120C] text-white rounded-3xl p-6 sm:p-10 shadow-xl border border-gold/30">
           <div className="relative z-10 max-w-xl">
-            <span className="px-3 py-1 rounded-full bg-gold/25 border border-gold/40 text-gold text-xs font-bold uppercase tracking-wider inline-block mb-3">
-              Experiencia Interactiva
+            <span className="px-3 py-1 rounded-full bg-gold/20 border border-gold/40 text-gold text-xs font-bold uppercase tracking-wider inline-flex items-center gap-1.5 mb-3">
+              <ConchaIcon className="w-4 h-4" />
+              <span>Experiencia Interactiva</span>
             </span>
             <h2 className="font-display text-2xl sm:text-4xl font-bold tracking-tight text-amber-50 mb-3">
               Arma tu Caja de Conchas a tu Gusto
@@ -55,7 +52,7 @@ export default function HomePage({ products = [], onOpenProduct, loading, error,
                 onClick={() => setShowConchaBuilder(true)}
                 className="px-7 py-3.5 bg-gold hover:brightness-105 text-[#2B1B12] rounded-full font-bold text-sm shadow-lg transition-transform transform hover:scale-105 flex items-center gap-2"
               >
-                <span>🍪</span>
+                <ConchaIcon className="w-5 h-5" />
                 <span>Personalizar mi caja ahora</span>
               </button>
               <Link
@@ -67,46 +64,58 @@ export default function HomePage({ products = [], onOpenProduct, loading, error,
             </div>
           </div>
 
-          {/* Decoración visual de fondo */}
-          <div className="absolute -right-8 -bottom-10 opacity-20 sm:opacity-30 pointer-events-none text-[150px] select-none">
-            🍪
+          {/* Decoración vectorial de fondo sutil */}
+          <div className="absolute -right-12 -bottom-12 opacity-10 pointer-events-none text-white select-none">
+            <ConchaIcon className="w-80 h-80" />
           </div>
         </div>
       </section>
 
-      {/* CATEGORÍAS DEL MENÚ OFICIAL */}
+      {/* 4 CATEGORÍAS DESTACADAS EN INICIO */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-12">
         <div className="text-center mb-10">
           <p className="font-hand text-2xl text-caramel -mb-1">horneado con amor</p>
-          <h2 className="font-display text-3xl font-bold text-ink">Nuestras Categorías</h2>
+          <h2 className="font-display text-3xl font-bold text-ink">Especialidades de la Casa</h2>
           <p className="text-xs sm:text-sm text-ink-soft mt-1 max-w-md mx-auto">
-            Explora las recetas artesanales de La Casa Amarilla preparadas con ingredientes de alta calidad.
+            Descubre nuestras preparaciones más representativas horneadas día a día.
           </p>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
-          {Object.entries(categories).map(([key, cat]) => (
+        {/* Grid de exactamente 4 cuadros */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          {displayedCategories.map(([key, cat]) => (
             <Link
               key={key}
               to={`/categoria/${key}`}
-              className="group bg-surface border border-border rounded-2xl p-5 text-center shadow-xs hover:shadow-md hover:border-caramel hover:-translate-y-1 transition-all duration-300 flex flex-col items-center justify-between"
+              className="group bg-surface border border-border rounded-2xl p-6 text-center shadow-xs hover:shadow-md hover:border-caramel hover:-translate-y-1 transition-all duration-300 flex flex-col items-center justify-between min-h-[220px]"
             >
-              <div className="text-3xl mb-2 p-3 rounded-2xl bg-surface-2 group-hover:scale-110 transition-transform duration-300 shadow-xs">
-                {CATEGORY_EMOJIS[key] || '🥖'}
+              <div className="p-3.5 rounded-2xl bg-surface-2 text-caramel group-hover:scale-110 group-hover:bg-gold/15 transition-all duration-300 shadow-xs mb-3">
+                {getCategoryIconComponent(cat.icon || key, 'w-7 h-7')}
               </div>
-              <div>
-                <h3 className="font-display text-base font-bold text-ink group-hover:text-caramel transition-colors">
+              <div className="flex-1 flex flex-col justify-center">
+                <h3 className="font-display text-base sm:text-lg font-bold text-ink group-hover:text-caramel transition-colors">
                   {cat.label}
                 </h3>
-                <p className="text-[11px] text-ink-soft mt-1 line-clamp-2 leading-relaxed">
+                <p className="text-xs text-ink-soft mt-1.5 line-clamp-2 leading-relaxed">
                   {cat.description}
                 </p>
               </div>
-              <span className="text-xs font-semibold text-caramel mt-3 inline-flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+              <span className="text-xs font-semibold text-caramel mt-4 inline-flex items-center gap-1 group-hover:translate-x-1 transition-transform">
                 Ver variedad →
               </span>
             </Link>
           ))}
+        </div>
+
+        {/* Acceso para ver todas las categorías */}
+        <div className="text-center mt-8">
+          <Link
+            to="/categoria/conchas"
+            className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-ink-soft hover:text-caramel transition-colors py-2 px-4 rounded-full border border-border hover:border-caramel bg-surface"
+          >
+            <span>Ver menú completo en el menú superior</span>
+            <span>→</span>
+          </Link>
         </div>
       </section>
 
@@ -116,18 +125,20 @@ export default function HomePage({ products = [], onOpenProduct, loading, error,
           <div className="bg-gradient-to-br from-amber-500/10 via-surface to-surface border border-amber-500/30 rounded-3xl p-6 sm:p-8">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
               <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
-                  🍂 Ediciones Limitadas
+                <span className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                  <TemporadaIcon className="w-3.5 h-3.5" />
+                  <span>Ediciones Limitadas</span>
                 </span>
                 <h2 className="font-display text-2xl font-bold text-ink mt-0.5">
-                  Especiales de Temporada
+                  Especiales de Temporada (Pan de Muerto y Festivos)
                 </h2>
               </div>
               <Link
                 to="/categoria/temporada"
-                className="px-5 py-2 rounded-full border border-amber-500/50 hover:bg-amber-500/15 text-xs font-bold text-ink transition-colors"
+                className="px-5 py-2 rounded-full border border-amber-500/50 hover:bg-amber-500/15 text-xs font-bold text-ink transition-colors flex items-center gap-1.5"
               >
-                Ver todo el menú festivo →
+                <span>Ver todo el menú festivo</span>
+                <span>→</span>
               </Link>
             </div>
 

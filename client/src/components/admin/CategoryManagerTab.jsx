@@ -1,21 +1,28 @@
 // client/src/components/admin/CategoryManagerTab.jsx
 import { useState } from 'react';
-import { CATEGORIES, saveStoredCategories } from '../../data/store';
+import {
+  CATEGORIES,
+  saveStoredCategories,
+  getFeaturedCategories,
+  saveFeaturedCategories,
+} from '../../data/store';
+import { getCategoryIconComponent } from '../icons/BakeryIcons';
 
 const ICON_OPTIONS = [
-  { id: 'cake', label: 'Pastel / Panqué', icon: '🧁' },
-  { id: 'cookie', label: 'Concha / Pan dulce', icon: '🍪' },
-  { id: 'bread', label: 'Pan de barra', icon: '🍞' },
-  { id: 'croissant', label: 'Danés / Hojaldre', icon: '🥐' },
-  { id: 'sandwich', label: 'Hamburguesa / Bollos', icon: '🍔' },
-  { id: 'sparkles', label: 'Especialidad', icon: '✨' },
-  { id: 'circle-dot', label: 'Rosca', icon: '🍩' },
-  { id: 'calendar', label: 'Temporada', icon: '🍂' },
-  { id: 'utensils', label: 'Banquetes', icon: '🍽️' },
+  { id: 'cookie', label: 'Concha / Pan Dulce' },
+  { id: 'cake', label: 'Panqué / Pastel' },
+  { id: 'circle-dot', label: 'Rosca' },
+  { id: 'sparkles', label: 'Especialidad Gourmet' },
+  { id: 'bread', label: 'Pan de Barra' },
+  { id: 'sandwich', label: 'Hamburguesa / Bollos' },
+  { id: 'utensils', label: 'Banquetes' },
+  { id: 'croissant', label: 'Pan Danés / Hojaldre' },
+  { id: 'calendar', label: 'Temporada Festiva' },
 ];
 
 export default function CategoryManagerTab({ onCategoryUpdated }) {
   const [categories, setCategories] = useState(CATEGORIES);
+  const [featuredIds, setFeaturedIds] = useState(getFeaturedCategories);
   const [editingId, setEditingId] = useState(null);
 
   const [form, setForm] = useState({
@@ -113,9 +120,36 @@ export default function CategoryManagerTab({ onCategoryUpdated }) {
     delete updated[catId];
     setCategories(updated);
     saveStoredCategories(updated);
+
+    // Si estaba destacada, la quitamos
+    const nextFeatured = featuredIds.filter((id) => id !== catId);
+    setFeaturedIds(nextFeatured);
+    saveFeaturedCategories(nextFeatured);
+
     if (onCategoryUpdated) onCategoryUpdated(updated);
     setFeedback('Categoría eliminada.');
     setTimeout(() => setFeedback(''), 3500);
+  };
+
+  const handleToggleFeatured = (catId) => {
+    let next;
+    if (featuredIds.includes(catId)) {
+      if (featuredIds.length <= 1) {
+        alert('Debe haber al menos 1 categoría destacada en el inicio.');
+        return;
+      }
+      next = featuredIds.filter((id) => id !== catId);
+    } else {
+      if (featuredIds.length >= 4) {
+        alert('Solo se pueden seleccionar un máximo de 4 categorías para la página de inicio.');
+        return;
+      }
+      next = [...featuredIds, catId];
+    }
+    setFeaturedIds(next);
+    saveFeaturedCategories(next);
+    setFeedback('Categorías de Inicio actualizadas.');
+    setTimeout(() => setFeedback(''), 3000);
   };
 
   return (
@@ -126,13 +160,66 @@ export default function CategoryManagerTab({ onCategoryUpdated }) {
         </div>
       )}
 
-      {/* Formulario de nueva/edición de categoría */}
+      {/* SECCIÓN: 4 CATEGORÍAS DESTACADAS EN HOME */}
+      <div className="bg-surface border border-border rounded-2xl p-6 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+          <div>
+            <h3 className="font-display font-semibold text-lg text-ink">
+              Categorías Mostradas en Inicio (Máximo 4)
+            </h3>
+            <p className="text-xs text-ink-soft">
+              Marca o desmarca cuáles 4 cuadros de especialidades deseas que aparezcan en la página principal:
+            </p>
+          </div>
+          <span className="text-xs font-bold px-3 py-1 bg-surface-2 border border-border rounded-full text-caramel">
+            {featuredIds.length} / 4 seleccionadas
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 pt-2">
+          {Object.entries(categories).map(([key, cat]) => {
+            const isSelected = featuredIds.includes(key);
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => handleToggleFeatured(key)}
+                className={`p-3.5 rounded-xl border text-left transition-all flex items-center justify-between gap-2 ${
+                  isSelected
+                    ? 'border-caramel bg-caramel/10 shadow-xs'
+                    : 'border-border bg-surface-2 hover:border-caramel/40 opacity-75'
+                }`}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className={isSelected ? 'text-caramel' : 'text-ink-soft'}>
+                    {getCategoryIconComponent(cat.icon || key, 'w-5 h-5')}
+                  </span>
+                  <span className="text-xs font-semibold text-ink truncate">
+                    {cat.label}
+                  </span>
+                </div>
+                <span
+                  className={`w-5 h-5 rounded-md flex items-center justify-center text-xs font-bold border transition-colors ${
+                    isSelected
+                      ? 'bg-caramel text-white border-caramel'
+                      : 'border-border bg-surface'
+                  }`}
+                >
+                  {isSelected ? '✓' : ''}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* FORMULARIO DE NUEVA / EDICIÓN DE CATEGORÍA */}
       <div className="bg-surface border border-border rounded-2xl p-6 shadow-sm">
         <h3 className="font-display font-semibold text-lg text-ink mb-1">
           {editingId ? `Editar Categoría: ${form.label}` : 'Crear Nueva Categoría'}
         </h3>
         <p className="text-xs text-ink-soft mb-6">
-          Las categorías creadas aparecerán de inmediato en el menú de navegación y en la página principal.
+          Las categorías creadas se incorporan automáticamente al desplegable de Categorías y al catálogo.
         </p>
 
         <form onSubmit={handleSave} className="space-y-4">
@@ -169,7 +256,7 @@ export default function CategoryManagerTab({ onCategoryUpdated }) {
 
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-ink-soft mb-1">
-              Descripción para la vitrina
+              Descripción para el catálogo
             </label>
             <textarea
               rows={2}
@@ -182,8 +269,8 @@ export default function CategoryManagerTab({ onCategoryUpdated }) {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-ink-soft mb-1">
-                Ícono representativo
+              <label className="block text-xs font-bold uppercase tracking-wider text-ink-soft mb-1.5">
+                Logotipo / Símbolo representativo
               </label>
               <div className="flex flex-wrap gap-2">
                 {ICON_OPTIONS.map((item) => (
@@ -191,21 +278,21 @@ export default function CategoryManagerTab({ onCategoryUpdated }) {
                     key={item.id}
                     type="button"
                     onClick={() => setForm((p) => ({ ...p, icon: item.id }))}
-                    className={`p-2 rounded-xl text-xl border transition-all ${
+                    className={`p-2.5 rounded-xl border transition-all ${
                       form.icon === item.id
-                        ? 'border-caramel bg-caramel/15 shadow-sm'
-                        : 'border-border bg-surface-2 hover:border-caramel/40'
+                        ? 'border-caramel bg-caramel/15 text-caramel shadow-xs'
+                        : 'border-border bg-surface-2 text-ink-soft hover:border-caramel/40'
                     }`}
                     title={item.label}
                   >
-                    {item.icon}
+                    {getCategoryIconComponent(item.id, 'w-5 h-5')}
                   </button>
                 ))}
               </div>
             </div>
 
             <div className="pt-2 sm:pt-4">
-              <label className="flex items-center gap-2 cursor-pointer">
+              <label className="flex items-center gap-2.5 cursor-pointer p-3 rounded-xl border border-border bg-surface-2">
                 <input
                   type="checkbox"
                   checked={form.isSeasonal}
@@ -213,7 +300,7 @@ export default function CategoryManagerTab({ onCategoryUpdated }) {
                   className="rounded border-border text-caramel focus:ring-caramel h-4 w-4"
                 />
                 <span className="text-sm font-semibold text-ink">
-                  ¿Es una categoría de temporada o festiva?
+                  ¿Es una categoría de temporada festiva?
                 </span>
               </label>
             </div>
@@ -239,29 +326,34 @@ export default function CategoryManagerTab({ onCategoryUpdated }) {
         </form>
       </div>
 
-      {/* Lista de categorías existentes */}
+      {/* LISTA DE TODAS LAS CATEGORÍAS */}
       <div className="bg-surface border border-border rounded-2xl p-6 shadow-sm">
         <h3 className="font-display font-semibold text-lg text-ink mb-4">
-          Categorías Actuales ({Object.keys(categories).length})
+          Todas las Categorías ({Object.keys(categories).length})
         </h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {Object.entries(categories).map(([key, cat]) => {
-            const iconObj = ICON_OPTIONS.find((i) => i.id === cat.icon);
+            const isFeatured = featuredIds.includes(key);
             return (
               <div
                 key={key}
-                className="p-4 rounded-xl border border-border bg-surface-2 flex items-start justify-between gap-3 shadow-sm hover:border-caramel/40 transition-colors"
+                className="p-4 rounded-xl border border-border bg-surface-2 flex items-start justify-between gap-3 shadow-xs hover:border-caramel/40 transition-colors"
               >
                 <div className="flex items-start gap-3">
-                  <span className="text-2xl p-2 bg-surface rounded-xl border border-border shadow-xs">
-                    {iconObj ? iconObj.icon : '🥖'}
+                  <span className="p-2.5 bg-surface text-caramel rounded-xl border border-border shadow-xs">
+                    {getCategoryIconComponent(cat.icon || key, 'w-6 h-6')}
                   </span>
                   <div>
                     <div className="flex items-center gap-2">
                       <h4 className="font-display font-semibold text-ink text-base">
                         {cat.label}
                       </h4>
+                      {isFeatured && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-gold/20 text-caramel border border-gold/40">
+                          En Inicio
+                        </span>
+                      )}
                       {cat.isSeasonal && (
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-700 dark:text-amber-300">
                           Temporada

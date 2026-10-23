@@ -322,7 +322,7 @@ export default function ConchaBoxBuilder({ product, onClose }) {
               </div>
               <p className="text-xs text-ink-soft text-center mt-2 font-medium">
                 {isFull
-                  ? '🎉 ¡Tu caja está completa y lista para hornear!'
+                  ? '✓ ¡Tu caja está completa y lista para ordenar!'
                   : `Agrega ${selectedBoxSize - filledCount} conchas más para completar la caja.`}
               </p>
             </div>
