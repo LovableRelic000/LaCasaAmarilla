@@ -55,7 +55,7 @@ export default function Navbar() {
             <img
               src="/logo.png"
               alt="La Casa Amarilla"
-              className="h-10 w-10 object-contain rounded-full border border-gold/40 shadow-xs"
+              className="h-12 w-12 sm:h-13 sm:w-13 object-contain rounded-full border-2 border-gold/40 shadow-xs transition-transform hover:scale-105"
               onError={(e) => {
                 e.target.style.display = 'none';
               }}
