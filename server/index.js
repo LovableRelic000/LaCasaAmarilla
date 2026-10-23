@@ -50,6 +50,24 @@ const db = mysql.createPool({
     database: process.env.DB_NAME,
 });
 
+// Auto-verificación de esquema para soportar atributos adicionales y categorías dinámicas
+(async () => {
+    try {
+        await db.query('ALTER TABLE productos ADD COLUMN attributes JSON NULL');
+    } catch {}
+    try {
+        await db.query(`CREATE TABLE IF NOT EXISTS categorias (
+            id VARCHAR(50) PRIMARY KEY,
+            label VARCHAR(100) NOT NULL,
+            description TEXT DEFAULT NULL,
+            icon VARCHAR(50) DEFAULT 'cookie',
+            is_seasonal BOOLEAN NOT NULL DEFAULT 0,
+            sort_order INT NOT NULL DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
+    } catch {}
+})();
+
 const verificarToken = (req, res, next) => {
     const token = req.headers['authorization']?.split(' ')[1];
     if (!token) return res.status(403).json({ error: 'Acceso denegado. Token no proporcionado.' });
@@ -138,17 +156,27 @@ app.get('/api/products', async (req, res) => {
 
 // ==================== RUTAS PROTEGIDAS (PANEL ADMIN) ====================
 app.post('/api/products', verificarToken, async (req, res) => {
-    const { name, description, price, image, category, subcategory, type } = req.body;
+    const { name, description, price, image, category, subcategory, type, attributes } = req.body;
 
     if (Number(price) < 0) {
         return res.status(400).json({ error: 'El precio del producto no puede ser negativo.' });
     }
 
     try {
-        const [result] = await db.query(
-            'INSERT INTO productos (name, description, price, image, category, subcategory, type, status) VALUES (?, ?, ?, ?, ?, ?, ?, "active")',
-            [name, description, price, image || '/img/products/default.jpg', category, subcategory || null, type || null]
-        );
+        const attributesJson = attributes ? JSON.stringify(attributes) : null;
+        let result;
+        try {
+            [result] = await db.query(
+                'INSERT INTO productos (name, description, price, image, category, subcategory, type, status, attributes) VALUES (?, ?, ?, ?, ?, ?, ?, "active", ?)',
+                [name, description, price, image || '/img/products/default.jpg', category, subcategory || null, type || null, attributesJson]
+            );
+        } catch {
+            // Fallback si la columna attributes aún no existe en una base de datos antigua
+            [result] = await db.query(
+                'INSERT INTO productos (name, description, price, image, category, subcategory, type, status) VALUES (?, ?, ?, ?, ?, ?, ?, "active")',
+                [name, description, price, image || '/img/products/default.jpg', category, subcategory || null, type || null]
+            );
+        }
         res.status(201).json({ id: result.insertId, message: 'Producto creado exitosamente.' });
     } catch (error) {
         console.error(error);
@@ -158,21 +186,67 @@ app.post('/api/products', verificarToken, async (req, res) => {
 
 app.put('/api/products/:id', verificarToken, async (req, res) => {
     const { id } = req.params;
-    const { name, description, price, image, category, subcategory, type, status } = req.body;
+    const { name, description, price, image, category, subcategory, type, status, attributes } = req.body;
 
     if (Number(price) < 0) {
         return res.status(400).json({ error: 'El precio del producto no puede ser negativo.' });
     }
 
     try {
-        await db.query(
-            'UPDATE productos SET name=?, description=?, price=?, image=?, category=?, subcategory=?, type=?, status=? WHERE id=?',
-            [name, description, price, image, category, subcategory || null, type || null, status, id]
-        );
+        const attributesJson = attributes ? JSON.stringify(attributes) : null;
+        try {
+            await db.query(
+                'UPDATE productos SET name=?, description=?, price=?, image=?, category=?, subcategory=?, type=?, status=?, attributes=? WHERE id=?',
+                [name, description, price, image, category, subcategory || null, type || null, status, attributesJson, id]
+            );
+        } catch {
+            await db.query(
+                'UPDATE productos SET name=?, description=?, price=?, image=?, category=?, subcategory=?, type=?, status=? WHERE id=?',
+                [name, description, price, image, category, subcategory || null, type || null, status, id]
+            );
+        }
         res.json({ message: 'Producto actualizado exitosamente.' });
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Error al actualizar el producto.' });
+    }
+});
+
+// ==================== CATEGORÍAS (DINÁMICAS) ====================
+app.get('/api/categories', async (req, res) => {
+    try {
+        const [rows] = await db.query('SELECT * FROM categorias ORDER BY sort_order ASC, label ASC');
+        res.json(rows);
+    } catch {
+        res.json([]);
+    }
+});
+
+app.post('/api/categories', verificarToken, async (req, res) => {
+    const { id, label, description, icon, is_seasonal, sort_order } = req.body;
+    if (!id || !label) {
+        return res.status(400).json({ error: 'ID y nombre son obligatorios.' });
+    }
+    try {
+        await db.query(
+            'INSERT INTO categorias (id, label, description, icon, is_seasonal, sort_order) VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE label=VALUES(label), description=VALUES(description), icon=VALUES(icon), is_seasonal=VALUES(is_seasonal), sort_order=VALUES(sort_order)',
+            [id, label, description || '', icon || 'cookie', is_seasonal ? 1 : 0, Number(sort_order) || 0]
+        );
+        res.json({ message: 'Categoría guardada exitosamente.' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Error al guardar la categoría.' });
+    }
+});
+
+app.delete('/api/categories/:id', verificarToken, async (req, res) => {
+    const { id } = req.params;
+    try {
+        await db.query('DELETE FROM categorias WHERE id = ?', [id]);
+        res.json({ message: 'Categoría eliminada exitosamente.' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Error al eliminar la categoría.' });
     }
 });
 
@@ -222,9 +296,16 @@ app.post('/api/pedidos', async (req, res) => {
         const itemsFinal = items.map((item) => {
             const producto = priceMap.get(Number(item.id));
             if (!producto) throw new Error('Uno de los productos ya no está disponible.');
-            const quantity = Math.max(1, Math.min(50, parseInt(item.quantity) || 1));
-            total += Number(producto.price) * quantity;
-            return { id: producto.id, name: producto.name, price: Number(producto.price), quantity };
+            const quantity = Math.max(1, Math.min(500, parseInt(item.quantity) || 1));
+            const unitPrice = typeof item.price === 'number' && item.price >= 0 ? Number(item.price) : Number(producto.price);
+            total += unitPrice * quantity;
+            return {
+                id: producto.id,
+                name: producto.name,
+                price: unitPrice,
+                quantity,
+                options: item.options || null,
+            };
         });
 
         const [result] = await db.query(

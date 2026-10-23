@@ -143,7 +143,14 @@ export default function PedidosTab() {
                   <li className="text-ink-soft italic">No se pudo leer el detalle de este pedido.</li>
                 ) : (
                   pedido.items.map((item, idx) => (
-                    <li key={idx}>• {item.quantity}x {item.name}</li>
+                    <li key={idx} className="flex flex-col">
+                      <span>• {item.quantity}x {item.name}</span>
+                      {item.options?.summary && (
+                        <span className="text-xs text-caramel font-medium pl-3">
+                          ↳ {item.options.summary}
+                        </span>
+                      )}
+                    </li>
                   ))
                 )}
               </ul>

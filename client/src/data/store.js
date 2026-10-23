@@ -1,382 +1,464 @@
-// src/data/store.js
-// Estructura de datos mock que replica el futuro esquema de MySQL
-// Cada producto tiene: id, name, description, price, image, category, subcategory, type, status
+// client/src/data/store.js
+// Estructura oficial de categorías y catálogo para La Casa Amarilla
 
-// -------------------------------------------------------------------------
-// JERARQUÍA DE CATEGORÍAS (para navegación y breadcrumbs)
-// -------------------------------------------------------------------------
-// category   -> nivel 1 (conchas-gourmet, roles-canela, pasteles)
-// subcategory -> nivel 2 (tradicionales, especialidad) - NO aplica a pasteles
-// type        -> nivel 3 (lotus, nutella, etc.) - solo dentro de "especialidad"
-//
-// Para "pasteles", no hay subcategoría intermedia; los "type" cuelgan
-// directamente de la categoría.
-
-export const CATEGORIES = {
-  'conchas-gourmet': {
-    label: 'Conchas Gourmet',
-    subcategories: {
-      tradicionales: {
-        label: 'Tradicionales',
-        types: null, // sin subniveles, productos directos
-      },
-      especialidad: {
-        label: 'De Especialidad',
-        types: {
-          lotus: { label: 'Lotus' },
-          nutella: { label: 'Nutella' },
-          almendra: { label: 'Almendra' },
-          oreo: { label: 'Oreo' },
-        },
-      },
-    },
+export const DEFAULT_CATEGORIES = {
+  panques: {
+    id: 'panques',
+    label: 'Panqués',
+    description: 'Esponjosos y aromáticos panqués artesanales horneados diariamente.',
+    icon: 'cake',
+    subcategories: null,
   },
-  'roles-canela': {
-    label: 'Roles de Canela',
-    subcategories: {
-      tradicionales: {
-        label: 'Tradicionales',
-        types: null,
-      },
-      especialidad: {
-        label: 'De Especialidad',
-        types: {
-          lotus: { label: 'Lotus' },
-          nutella: { label: 'Nutella' },
-          oreo: { label: 'Oreo' },
-          pistache: { label: 'Pistache' },
-          coco: { label: 'Coco' },
-          'fresas-crema': { label: 'Fresas con Crema' },
-        },
-      },
-    },
+  roscas: {
+    id: 'roscas',
+    label: 'Roscas',
+    description: 'Roscas y postres horneados tradicionales con recetas de la casa.',
+    icon: 'circle-dot',
+    subcategories: null,
   },
-  pasteles: {
-    label: 'Pasteles',
-    subcategories: null, // los "types" cuelgan directo de la categoría
-    types: {
-      fresa: { label: 'Fresa' },
-      vainilla: { label: 'Vainilla' },
-      chocolate: { label: 'Chocolate' },
-      marmoleados: { label: 'Marmoleados' },
-      'red-velvet': { label: 'Red Velvet' },
-      'tres-leches': { label: 'Tres Leches' },
-      chocoflan: { label: 'Chocoflán' },
-      'rosca-judia': { label: 'Rosca Judía' },
-    },
+  conchas: {
+    id: 'conchas',
+    label: 'Conchas Tradicionales',
+    description: 'Nuestras emblemáticas conchas artesanales. Venta por media docena y docena con selector mixto.',
+    icon: 'cookie',
+    subcategories: null,
+    isBoxProduct: true,
+  },
+  'conchas-especialidad': {
+    id: 'conchas-especialidad',
+    label: 'Conchas de Especialidad',
+    description: 'Conchas rellenas y cubiertas gourmet con ingredientes premium. Venta individual.',
+    icon: 'sparkles',
+    subcategories: null,
+  },
+  'pan-barra': {
+    id: 'pan-barra',
+    label: 'Pan de Barra',
+    description: 'Panes de molde rústicos, masa madre y harinas integrales de fermentación lenta.',
+    icon: 'bread',
+    subcategories: null,
+  },
+  'pan-hamburguesa': {
+    id: 'pan-hamburguesa',
+    label: 'Pan de Hamburguesa',
+    description: 'Brioche suave y resistente para hamburguesas gourmet. Venta por docena.',
+    icon: 'sandwich',
+    subcategories: null,
+  },
+  'pan-banquetes': {
+    id: 'pan-banquetes',
+    label: 'Pan de Banquetes',
+    description: 'Panecillos miniatura para eventos, reuniones y banquetes. Venta por docena.',
+    icon: 'utensils',
+    subcategories: null,
+  },
+  'pan-danes': {
+    id: 'pan-danes',
+    label: 'Pan Danés',
+    description: 'Hojaldres finos laminados con mantequilla pura y rellenos exquisitos.',
+    icon: 'croissant',
+    subcategories: null,
+  },
+  temporada: {
+    id: 'temporada',
+    label: 'Menú de Temporada',
+    description: 'Ediciones limitadas y recetas festivas según la época del año.',
+    icon: 'calendar',
+    subcategories: null,
+    isSeasonal: true,
   },
 };
 
+// Obtenemos categorías activas (permite añadir o editar desde el panel o almacenamiento)
+const CATEGORIES_STORAGE_KEY = 'casaAmarillaCategories';
+
+export function getStoredCategories() {
+  try {
+    const raw = localStorage.getItem(CATEGORIES_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Object.keys(parsed).length > 0) return parsed;
+    }
+  } catch (e) {
+    console.error('Error leyendo categorías de localStorage:', e);
+  }
+  return DEFAULT_CATEGORIES;
+}
+
+export function saveStoredCategories(categories) {
+  try {
+    localStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(categories));
+  } catch (e) {
+    console.error('Error guardando categorías en localStorage:', e);
+  }
+}
+
+export let CATEGORIES = getStoredCategories();
+
 // -------------------------------------------------------------------------
-// PRODUCTOS (mock)
-// status: 'active' | 'discontinued'  (descontinuado / fuera de temporada)
+// CATÁLOGO BASE DE PRODUCTOS OFICIALES DE LA CASA AMARILLA
 // -------------------------------------------------------------------------
 export const PRODUCTS = [
-  // ----------------- CONCHAS GOURMET - TRADICIONALES -----------------
+  // ==================== PANQUÉS ====================
   {
-    id: 1001,
-    name: 'Concha de Vainilla',
-    description: 'Pan dulce clásico cubierto con pasta de azúcar sabor vainilla.',
-    price: 18,
-    image: '/img/products/concha-vainilla.jpg',
-    category: 'conchas-gourmet',
-    subcategory: 'tradicionales',
-    type: null,
+    id: 101,
+    name: 'Panqué Artesanal',
+    description: 'Panqué esponjoso horneado con mantequilla de primera. Selecciona tu sabor preferido.',
+    price: 95,
+    image: '/img/products/panque-artesanal.jpg',
+    category: 'panques',
+    subcategory: null,
     status: 'active',
-  },
-  {
-    id: 1002,
-    name: 'Concha de Chocolate',
-    description: 'Suave pan de concha con cubierta de pasta de chocolate.',
-    price: 18,
-    image: '/img/products/concha-chocolate.jpg',
-    category: 'conchas-gourmet',
-    subcategory: 'tradicionales',
-    type: null,
-    status: 'active',
-  },
-  {
-    id: 1003,
-    name: 'Concha de Fresa',
-    description: 'Pan de concha tradicional con cubierta rosa sabor fresa.',
-    price: 18,
-    image: '/img/products/concha-fresa.jpg',
-    category: 'conchas-gourmet',
-    subcategory: 'tradicionales',
-    type: null,
-    status: 'active',
+    attributes: {
+      hasFlavors: true,
+      flavors: ['Nuez', 'Pasas', 'Plátano', 'Marmoleado', 'Limón'],
+      defaultFlavor: 'Nuez',
+      hasWeight: true,
+      weight: '450g aprox.',
+      hasAllergens: true,
+      allergens: ['Gluten', 'Lácteos', 'Huevo'],
+      requiresAdvanceNotice: false,
+    },
   },
 
-  // ----------------- CONCHAS GOURMET - ESPECIALIDAD -----------------
+  // ==================== ROSCAS ====================
   {
-    id: 1101,
-    name: 'Concha Gourmet Lotus',
-    description: 'Concha artesanal rellena y bañada con crema de galleta Lotus.',
-    price: 38,
-    image: '/img/products/concha-lotus.jpg',
-    category: 'conchas-gourmet',
-    subcategory: 'especialidad',
-    type: 'lotus',
-    status: 'active',
-  },
-  {
-    id: 1102,
-    name: 'Concha Gourmet Nutella',
-    description: 'Concha rellena de Nutella con cubierta crujiente de cacao.',
-    price: 38,
-    image: '/img/products/concha-nutella.jpg',
-    category: 'conchas-gourmet',
-    subcategory: 'especialidad',
-    type: 'nutella',
-    status: 'active',
-  },
-  {
-    id: 1103,
-    name: 'Concha Gourmet Almendra',
-    description: 'Concha de especialidad con crema de almendra y almendras laminadas.',
-    price: 40,
-    image: '/img/products/concha-almendra.jpg',
-    category: 'conchas-gourmet',
-    subcategory: 'especialidad',
-    type: 'almendra',
-    status: 'active',
-  },
-  {
-    id: 1104,
-    name: 'Concha Gourmet Oreo',
-    description: 'Concha rellena de crema y trozos de galleta Oreo.',
-    price: 38,
-    image: '/img/products/concha-oreo.jpg',
-    category: 'conchas-gourmet',
-    subcategory: 'especialidad',
-    type: 'oreo',
-    status: 'active',
-  },
-
-  // ----------------- ROLES DE CANELA - TRADICIONALES -----------------
-  {
-    id: 2001,
-    name: 'Rol de Canela Clásico',
-    description: 'Suave rol de canela horneado con glaseado tradicional.',
-    price: 35,
-    image: '/img/products/rol-clasico.jpg',
-    category: 'roles-canela',
-    subcategory: 'tradicionales',
-    type: null,
-    status: 'active',
-  },
-  {
-    id: 2002,
-    name: 'Rol de Canela Mini',
-    description: 'Versión individual del rol de canela tradicional, perfecto para compartir.',
-    price: 20,
-    image: '/img/products/rol-mini.jpg',
-    category: 'roles-canela',
-    subcategory: 'tradicionales',
-    type: null,
-    status: 'active',
-  },
-
-  // ----------------- ROLES DE CANELA - ESPECIALIDAD -----------------
-  {
-    id: 2101,
-    name: 'Rol de Canela Lotus',
-    description: 'Rol de canela bañado en crema y galleta Lotus caramelizada.',
-    price: 45,
-    image: '/img/products/rol-lotus.jpg',
-    category: 'roles-canela',
-    subcategory: 'especialidad',
-    type: 'lotus',
-    status: 'active',
-  },
-  {
-    id: 2102,
-    name: 'Rol de Canela Nutella',
-    description: 'Rol relleno y bañado con Nutella, espolvoreado con cacao.',
-    price: 45,
-    image: '/img/products/rol-nutella.jpg',
-    category: 'roles-canela',
-    subcategory: 'especialidad',
-    type: 'nutella',
-    status: 'active',
-  },
-  {
-    id: 2103,
-    name: 'Rol de Canela Oreo',
-    description: 'Rol de canela con crema y trozos de galleta Oreo encima.',
-    price: 45,
-    image: '/img/products/rol-oreo.jpg',
-    category: 'roles-canela',
-    subcategory: 'especialidad',
-    type: 'oreo',
-    status: 'active',
-  },
-  {
-    id: 2104,
-    name: 'Rol de Canela Pistache',
-    description: 'Rol bañado en crema de pistache con pistaches picados.',
-    price: 48,
-    image: '/img/products/rol-pistache.jpg',
-    category: 'roles-canela',
-    subcategory: 'especialidad',
-    type: 'pistache',
-    status: 'active',
-  },
-  {
-    id: 2105,
-    name: 'Rol de Canela Coco',
-    description: 'Rol de canela cubierto con crema y coco rallado tostado.',
-    price: 42,
-    image: '/img/products/rol-coco.jpg',
-    category: 'roles-canela',
-    subcategory: 'especialidad',
-    type: 'coco',
-    status: 'active',
-  },
-  {
-    id: 2106,
-    name: 'Rol de Canela Fresas con Crema',
-    description: 'Rol relleno de crema y trozos de fresa fresca, decorado con fresas.',
-    price: 48,
-    image: '/img/products/rol-fresas.jpg',
-    category: 'roles-canela',
-    subcategory: 'especialidad',
-    type: 'fresas-crema',
-    status: 'active',
-  },
-
-  // ----------------- PASTELES -----------------
-  {
-    id: 3001,
-    name: 'Pastel de Fresa',
-    description: 'Pan esponjoso relleno de crema y fresas naturales.',
-    price: 280,
-    image: '/img/products/pastel-fresa.jpg',
-    category: 'pasteles',
-    subcategory: null,
-    type: 'fresa',
-    status: 'active',
-  },
-  {
-    id: 3002,
-    name: 'Pastel de Vainilla',
-    description: 'Clásico pastel de vainilla con betún suave y decoración elegante.',
-    price: 260,
-    image: '/img/products/pastel-vainilla.jpg',
-    category: 'pasteles',
-    subcategory: null,
-    type: 'vainilla',
-    status: 'active',
-  },
-  {
-    id: 3003,
-    name: 'Pastel de Chocolate',
-    description: 'Pastel húmedo de chocolate con cobertura de ganache.',
-    price: 280,
-    image: '/img/products/pastel-chocolate.jpg',
-    category: 'pasteles',
-    subcategory: null,
-    type: 'chocolate',
-    status: 'active',
-  },
-  {
-    id: 3004,
-    name: 'Pastel Marmoleado',
-    description: 'Combinación de pan de vainilla y chocolate con relleno cremoso.',
-    price: 270,
-    image: '/img/products/pastel-marmoleado.jpg',
-    category: 'pasteles',
-    subcategory: null,
-    type: 'marmoleados',
-    status: 'active',
-  },
-  {
-    id: 3005,
-    name: 'Pastel Red Velvet',
-    description: 'Pan rojo aterciopelado con relleno de queso crema.',
-    price: 320,
-    image: '/img/products/pastel-redvelvet.jpg',
-    category: 'pasteles',
-    subcategory: null,
-    type: 'red-velvet',
-    status: 'active',
-  },
-  {
-    id: 3006,
-    name: 'Pastel Tres Leches',
-    description: 'Esponjoso pan bañado en tres tipos de leche, decorado con canela.',
-    price: 290,
-    image: '/img/products/pastel-tresleches.jpg',
-    category: 'pasteles',
-    subcategory: null,
-    type: 'tres-leches',
-    status: 'active',
-  },
-  {
-    id: 3007,
-    name: 'Chocoflán',
-    description: 'Combinación de pastel de chocolate y flan napolitano en una sola pieza.',
-    price: 310,
-    image: '/img/products/chocoflan.jpg',
-    category: 'pasteles',
-    subcategory: null,
-    type: 'chocoflan',
-    status: 'active',
-  },
-  {
-    id: 3008,
-    name: 'Rosca Judía',
-    description: 'Pan trenzado tradicional, suave y ligeramente dulce.',
+    id: 201,
+    name: 'Volteado de Piña',
+    description: 'Receta casera clásica caramelizada con rebanadas de piña miel y cerezas marrasquino.',
     price: 180,
-    image: '/img/products/rosca-judia.jpg',
-    category: 'pasteles',
+    image: '/img/products/volteado-pina.jpg',
+    category: 'roscas',
     subcategory: null,
-    type: 'rosca-judia',
     status: 'active',
+    attributes: {
+      hasSizes: true,
+      sizes: [
+        { label: 'Chica (4-6 porciones)', priceAdjustment: 0 },
+        { label: 'Grande (10-12 porciones)', priceAdjustment: 120 },
+      ],
+      hasWeight: true,
+      weight: '800g aprox.',
+      hasAllergens: true,
+      allergens: ['Gluten', 'Lácteos', 'Huevo'],
+    },
+  },
+  {
+    id: 202,
+    name: 'Rosca Judía',
+    description: 'Tradicional rosca suave y aromática con toque de canela, pasas y nuez seleccionada.',
+    price: 210,
+    image: '/img/products/rosca-judia.jpg',
+    category: 'roscas',
+    subcategory: null,
+    status: 'active',
+    attributes: {
+      hasWeight: true,
+      weight: '900g aprox.',
+      hasAllergens: true,
+      allergens: ['Gluten', 'Lácteos', 'Huevo', 'Nuez'],
+    },
+  },
+  {
+    id: 203,
+    name: 'Chocoflán',
+    description: 'La combinación perfecta: flán napolitano suave sobre un bizcocho húmedo de chocolate oscuro.',
+    price: 220,
+    image: '/img/products/chocoflan.jpg',
+    category: 'roscas',
+    subcategory: null,
+    status: 'active',
+    attributes: {
+      hasWeight: true,
+      weight: '1.1 kg aprox.',
+      hasAllergens: true,
+      allergens: ['Gluten', 'Lácteos', 'Huevo'],
+    },
   },
 
-  // ----------------- PRODUCTOS DESCONTINUADOS / FUERA DE TEMPORADA -----------------
+  // ==================== CONCHAS TRADICIONALES (SELECTOR DE CAJA) ====================
   {
-    id: 9001,
-    name: 'Concha de Calabaza (Edición Otoño)',
-    description: 'Concha de temporada con relleno de calabaza especiada.',
+    id: 301,
+    name: 'Caja de Conchas Tradicionales',
+    description: 'Nuestras conchas más queridas. Arma tu caja personalizada de media docena o docena eligiendo cuántas deseas de cada sabor.',
+    price: 110, // Precio base media docena
+    image: '/img/products/caja-conchas.jpg',
+    category: 'conchas',
+    subcategory: null,
+    status: 'active',
+    attributes: {
+      isConchaBox: true,
+      boxSizes: [
+        { size: 6, label: 'Media Docena (6 conchas)', price: 110 },
+        { size: 12, label: 'Docena Completa (12 conchas)', price: 210 },
+      ],
+      availableFlavors: [
+        { id: 'fresa', name: 'Fresa', color: '#F472B6', crustColor: '#FB7185' },
+        { id: 'chocolate', name: 'Chocolate', color: '#78350F', crustColor: '#451A03' },
+        { id: 'vainilla', name: 'Vainilla', color: '#FDE047', crustColor: '#D97706' },
+      ],
+      hasAllergens: true,
+      allergens: ['Gluten', 'Lácteos', 'Huevo'],
+    },
+  },
+
+  // ==================== CONCHAS DE ESPECIALIDAD ====================
+  {
+    id: 401,
+    name: 'Concha Gourmet Nutella',
+    description: 'Concha esponjosa rellena de generosa crema de Nutella y cubierta crocante de cacao.',
     price: 42,
-    image: '/img/products/concha-calabaza.jpg',
-    category: null,
+    image: '/img/products/concha-nutella.jpg',
+    category: 'conchas-especialidad',
     subcategory: null,
-    type: null,
-    status: 'discontinued',
+    status: 'active',
+    attributes: {
+      hasAllergens: true,
+      allergens: ['Gluten', 'Lácteos', 'Avellana'],
+      saleUnit: 'Pieza individual',
+    },
   },
   {
-    id: 9002,
-    name: 'Rol de Canela Navideño',
-    description: 'Rol de canela con glaseado de menta, edición especial de diciembre.',
-    price: 50,
-    image: '/img/products/rol-navideno.jpg',
-    category: null,
+    id: 402,
+    name: 'Concha Gourmet Lotus Biscoff',
+    description: 'Concha rellena de auténtica crema de galleta Lotus Biscoff con topping de galleta crujiente.',
+    price: 45,
+    image: '/img/products/concha-lotus.jpg',
+    category: 'conchas-especialidad',
     subcategory: null,
-    type: null,
-    status: 'discontinued',
+    status: 'active',
+    attributes: {
+      hasAllergens: true,
+      allergens: ['Gluten', 'Lácteos', 'Soya'],
+      saleUnit: 'Pieza individual',
+    },
   },
-];
+  {
+    id: 403,
+    name: 'Concha Gourmet Almendra & Crema',
+    description: 'Concha de especialidad rellena de crema pastelera artesanal y almendras fileteadas tostadas.',
+    price: 45,
+    image: '/img/products/concha-almendra.jpg',
+    category: 'conchas-especialidad',
+    subcategory: null,
+    status: 'active',
+    attributes: {
+      hasAllergens: true,
+      allergens: ['Gluten', 'Lácteos', 'Almendras'],
+      saleUnit: 'Pieza individual',
+    },
+  },
 
-// -------------------------------------------------------------------------
-// IMÁGENES DEL HERO BANNER
-// -------------------------------------------------------------------------
-export const HERO_IMAGES = [
+  // ==================== PAN DE BARRA ====================
   {
-    image: '/img/hero/hero-1.jpg',
-    title: 'Bienvenido a La Casa Amarilla',
-    subtitle: 'Repostería y pastelería artesanal hecha con amor',
+    id: 501,
+    name: 'Pan de Barra Blanco Artesanal',
+    description: 'Pan de molde clásico con miga suave y elástica, corteza tierna y sin conservadores artificiales.',
+    price: 75,
+    image: '/img/products/pan-barra-blanco.jpg',
+    category: 'pan-barra',
+    subcategory: null,
+    status: 'active',
+    attributes: {
+      hasWeight: true,
+      weight: '600g aprox.',
+      hasAllergens: true,
+      allergens: ['Gluten'],
+    },
   },
   {
-    image: '/img/hero/hero-2.jpg',
-    title: 'Conchas Gourmet',
-    subtitle: 'Sabores únicos: Lotus, Nutella, Oreo y más',
+    id: 502,
+    name: 'Pan de Masa Madre (Sourdough)',
+    description: 'Elaborado con fermentación lenta natural de 24 horas. Corteza crujiente y miga aireada con sutil acidez.',
+    price: 95,
+    image: '/img/products/pan-masa-madre.jpg',
+    category: 'pan-barra',
+    subcategory: null,
+    status: 'active',
+    attributes: {
+      hasWeight: true,
+      weight: '750g aprox.',
+      hasAllergens: true,
+      allergens: ['Gluten'],
+      requiresAdvanceNotice: true,
+      advanceNoticeHours: 24,
+    },
   },
   {
-    image: '/img/hero/hero-3.jpg',
-    title: 'Pasteles para toda ocasión',
-    subtitle: 'Hechos frescos cada día con ingredientes de calidad',
+    id: 503,
+    name: 'Pan de Barra Integral & Semillas',
+    description: 'Elaborado con harina 100% integral, semillas de girasol, linaza y chía tostadas.',
+    price: 85,
+    image: '/img/products/pan-barra-integral.jpg',
+    category: 'pan-barra',
+    subcategory: null,
+    status: 'active',
+    attributes: {
+      hasWeight: true,
+      weight: '650g aprox.',
+      hasAllergens: true,
+      allergens: ['Gluten', 'Semillas'],
+    },
+  },
+
+  // ==================== PAN DE HAMBURGUESA (DOCENAS) ====================
+  {
+    id: 601,
+    name: 'Bollos Brioche para Hamburguesa (Docena)',
+    description: 'Bollos dorados tipo brioche con ajonjolí tostado. Tienen la esponjosidad y resistencia ideal para carnes jugosas.',
+    price: 150, // Precio por docena
+    image: '/img/products/pan-hamburguesa.jpg',
+    category: 'pan-hamburguesa',
+    subcategory: null,
+    status: 'active',
+    attributes: {
+      hasMinOrder: true,
+      minOrder: 12,
+      orderStep: 12,
+      saleUnitLabel: 'docenas (12 pzas)',
+      hasWeight: true,
+      weight: '90g por bollo',
+      hasAllergens: true,
+      allergens: ['Gluten', 'Lácteos', 'Huevo', 'Ajonjolí'],
+    },
+  },
+
+  // ==================== PAN DE BANQUETES (DOCENAS) ====================
+  {
+    id: 701,
+    name: 'Panecillos Gourmet para Banquetes (Docena)',
+    description: 'Panecillos surtidos miniatura (cuernitos, medianoches y panecillos brioche) perfectos para tablas de quesos, eventos y cócteles.',
+    price: 130, // Precio por docena
+    image: '/img/products/pan-banquetes.jpg',
+    category: 'pan-banquetes',
+    subcategory: null,
+    status: 'active',
+    attributes: {
+      hasMinOrder: true,
+      minOrder: 12,
+      orderStep: 12,
+      saleUnitLabel: 'docenas (12 pzas)',
+      hasAllergens: true,
+      allergens: ['Gluten', 'Lácteos', 'Huevo'],
+      requiresAdvanceNotice: true,
+      advanceNoticeHours: 24,
+    },
+  },
+
+  // ==================== PAN DANÉS ====================
+  {
+    id: 801,
+    name: 'Croissant Tradicional de Mantequilla',
+    description: 'Hojaldre francés clásico con capas doradas y crocantes y miga alveolar aromatizada con mantequilla de vaca.',
+    price: 36,
+    image: '/img/products/croissant.jpg',
+    category: 'pan-danes',
+    subcategory: null,
+    status: 'active',
+    attributes: {
+      hasAllergens: true,
+      allergens: ['Gluten', 'Lácteos'],
+    },
+  },
+  {
+    id: 802,
+    name: 'Chocolatín (Pain au Chocolat)',
+    description: 'Masa danesa laminada rellena con dos barras de chocolate belga semiamargo.',
+    price: 40,
+    image: '/img/products/chocolatin.jpg',
+    category: 'pan-danes',
+    subcategory: null,
+    status: 'active',
+    attributes: {
+      hasAllergens: true,
+      allergens: ['Gluten', 'Lácteos', 'Soya'],
+    },
+  },
+  {
+    id: 803,
+    name: 'Trenza de Nuez y Miel de Maple',
+    description: 'Hojaldre danés trenzado a mano con nuez pecana caramelizada y glaseado ligero de maple.',
+    price: 42,
+    image: '/img/products/trenza-nuez.jpg',
+    category: 'pan-danes',
+    subcategory: null,
+    status: 'active',
+    attributes: {
+      hasAllergens: true,
+      allergens: ['Gluten', 'Lácteos', 'Nuez'],
+    },
+  },
+  {
+    id: 804,
+    name: 'Molinete de Frutos Rojos',
+    description: 'Hojaldre danés en forma de molinete con corazón de queso crema y compota artesanal de frutos del bosque.',
+    price: 38,
+    image: '/img/products/molinete-frutos.jpg',
+    category: 'pan-danes',
+    subcategory: null,
+    status: 'active',
+    attributes: {
+      hasAllergens: true,
+      allergens: ['Gluten', 'Lácteos'],
+    },
+  },
+
+  // ==================== MENÚ DE TEMPORADA ====================
+  {
+    id: 901,
+    name: 'Pan de Muerto Tradicional de Azúcar',
+    description: 'Aromatizado con azahar natural, ralladura de naranja y mantequilla pura. Espolvoreado con azúcar fina.',
+    price: 35,
+    image: '/img/products/pan-muerto-tradicional.jpg',
+    category: 'temporada',
+    subcategory: null,
+    status: 'active',
+    attributes: {
+      isSeasonal: true,
+      seasonalSeason: 'Otoño / Día de Muertos',
+      hasAllergens: true,
+      allergens: ['Gluten', 'Lácteos', 'Huevo'],
+    },
+  },
+  {
+    id: 902,
+    name: 'Pan de Muerto Relleno de Nata',
+    description: 'Nuestra receta clásica de pan de muerto abierta y rellena de abundante nata fresca montada.',
+    price: 55,
+    image: '/img/products/pan-muerto-relleno.jpg',
+    category: 'temporada',
+    subcategory: null,
+    status: 'active',
+    attributes: {
+      isSeasonal: true,
+      seasonalSeason: 'Otoño / Día de Muertos',
+      hasAllergens: true,
+      allergens: ['Gluten', 'Lácteos', 'Huevo'],
+      requiresAdvanceNotice: true,
+      advanceNoticeHours: 12,
+    },
+  },
+  {
+    id: 903,
+    name: 'Rosca de Reyes Artesanal',
+    description: 'Masa brioche perfumada con azahar, decorada con costra azucarada de concha, higos y ate de guayaba.',
+    price: 280,
+    image: '/img/products/rosca-reyes.jpg',
+    category: 'temporada',
+    subcategory: null,
+    status: 'active',
+    attributes: {
+      isSeasonal: true,
+      seasonalSeason: 'Enero / Reyes Magos',
+      hasSizes: true,
+      sizes: [
+        { label: 'Mediana (6-8 personas)', priceAdjustment: 0 },
+        { label: 'Grande (12-16 personas)', priceAdjustment: 160 },
+      ],
+      hasAllergens: true,
+      allergens: ['Gluten', 'Lácteos', 'Huevo'],
+      requiresAdvanceNotice: true,
+      advanceNoticeHours: 24,
+    },
   },
 ];

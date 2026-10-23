@@ -14,6 +14,7 @@ import CategoryPage from './pages/CategoryPage';
 import CartPage from './pages/CartPage';
 import LoginPage from './pages/LoginPage';
 import AdminPage from './pages/AdminPage';
+import { PRODUCTS } from './data/store';
 import NotFound from './pages/NotFound';
 
 function ScrollToTop() {
@@ -43,14 +44,30 @@ function AppContent() {
       const res = await fetch('/api/products');
       if (!res.ok) throw new Error('Respuesta no válida del servidor.');
       const data = await res.json();
-      const productosNormalizados = data.map((producto) => ({
-        ...producto,
-        price: Number(producto.price),
-      }));
-      setProducts(productosNormalizados);
+      if (Array.isArray(data) && data.length > 0) {
+        const productosNormalizados = data.map((producto) => {
+          let attrs = producto.attributes || {};
+          if (typeof attrs === 'string') {
+            try {
+              attrs = JSON.parse(attrs);
+            } catch {
+              attrs = {};
+            }
+          }
+          return {
+            ...producto,
+            price: Number(producto.price),
+            attributes: attrs,
+          };
+        });
+        setProducts(productosNormalizados);
+      } else {
+        // Si la base de datos está vacía, usamos el catálogo oficial base
+        setProducts(PRODUCTS);
+      }
     } catch (error) {
-      console.error('Error al conectar con la API de productos:', error);
-      setProductsError(true);
+      console.warn('API no disponible o sin conexión. Usando catálogo oficial:', error.message);
+      setProducts(PRODUCTS);
     } finally {
       setLoadingProducts(false);
     }
@@ -116,6 +133,7 @@ function AppContent() {
             }
           />
           <Route path="/carrito" element={<CartPage />} />
+          <Route path="/temporada" element={<Navigate to="/categoria/temporada" replace />} />
           <Route path={`/${ADMIN_PATH}`} element={<LoginPage />} />
           <Route
             path={`/${ADMIN_PATH}/panel`}

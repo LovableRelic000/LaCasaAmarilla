@@ -1,19 +1,32 @@
-// src/pages/CategoryPage.jsx
+// client/src/pages/CategoryPage.jsx
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { CATEGORIES } from '../data/store';
+import { getStoredCategories } from '../data/store';
 import { getSectionsForPage } from '../utils/productUtils';
 import ProductCard from '../components/product/ProductCard';
 import ProductCardSkeleton from '../components/product/ProductCardSkeleton';
 import StatusMessage from '../components/StatusMessage';
+import ConchaBoxBuilder from '../components/conchas/ConchaBoxBuilder';
 
 export default function CategoryPage({ products, onOpenProduct, loading, error, onRetry }) {
   const { category, subcategory, type } = useParams();
-  const cat = CATEGORIES[category];
+  const categories = getStoredCategories();
+  const cat = categories[category];
+  const [showConchaBuilder, setShowConchaBuilder] = useState(false);
 
   if (!cat) {
     return (
       <div className="max-w-6xl mx-auto px-4 py-20 text-center">
-        <p className="text-ink-soft">Categoría no encontrada.</p>
+        <h2 className="font-display text-2xl font-bold text-ink mb-2">Categoría no encontrada</h2>
+        <p className="text-ink-soft text-sm mb-6">
+          La categoría que buscas no existe o fue modificada.
+        </p>
+        <Link
+          to="/"
+          className="px-6 py-2.5 bg-gold text-[#2B1B12] rounded-full font-semibold text-sm"
+        >
+          Regresar al inicio
+        </Link>
       </div>
     );
   }
@@ -28,6 +41,9 @@ export default function CategoryPage({ products, onOpenProduct, loading, error, 
     const typesSource = subcategory ? cat.subcategories?.[subcategory]?.types : cat.types;
     if (typesSource?.[type]) pageTitle = typesSource[type].label;
   }
+
+  const isConchaCategory = category === 'conchas';
+  const conchaProduct = products.find((p) => p.attributes?.isConchaBox || p.category === 'conchas');
 
   const renderSubnav = () => {
     if (!subcategory && !type && cat.subcategories) {
@@ -52,8 +68,34 @@ export default function CategoryPage({ products, onOpenProduct, loading, error, 
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-20">
-      <h1 className="font-display text-3xl font-semibold text-ink mb-1">{pageTitle}</h1>
-      <div className="w-12 h-1 bg-gold rounded-full mb-8" />
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="font-display text-3xl font-bold text-ink">{pageTitle}</h1>
+            {cat.isSeasonal && (
+              <span className="px-3 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-700 dark:text-amber-300">
+                Temporada
+              </span>
+            )}
+          </div>
+          {cat.description && (
+            <p className="text-sm text-ink-soft mt-1 max-w-2xl">{cat.description}</p>
+          )}
+        </div>
+
+        {isConchaCategory && (
+          <button
+            type="button"
+            onClick={() => setShowConchaBuilder(true)}
+            className="px-5 py-2.5 bg-gold hover:brightness-105 text-[#2B1B12] rounded-full font-bold text-xs sm:text-sm shadow-sm flex items-center gap-2 transition-transform transform hover:scale-105"
+          >
+            <span>🍪</span>
+            <span>Armar Caja de Conchas</span>
+          </button>
+        )}
+      </div>
+
+      <div className="w-14 h-1 bg-gold rounded-full mb-8" />
 
       {renderSubnav()}
 
@@ -93,6 +135,14 @@ export default function CategoryPage({ products, onOpenProduct, loading, error, 
             </div>
           );
         })
+      )}
+
+      {/* Modal de Conchas si se activa */}
+      {showConchaBuilder && (
+        <ConchaBoxBuilder
+          product={conchaProduct}
+          onClose={() => setShowConchaBuilder(false)}
+        />
       )}
     </div>
   );

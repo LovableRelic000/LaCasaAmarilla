@@ -8,6 +8,7 @@ import DiscontinuedList from '../components/admin/DiscontinuedList';
 import StatusMessage from '../components/StatusMessage';
 import PedidosTab from '../components/admin/PedidosTab';
 import HeroTab from '../components/admin/HeroTab';
+import CategoryManagerTab from '../components/admin/CategoryManagerTab';
 import NoIndex from '../components/NoIndex';
 
 export default function AdminPage({ products, onFetchProducts, loading, error }) {
@@ -164,6 +165,7 @@ export default function AdminPage({ products, onFetchProducts, loading, error })
         {[
           { key: 'add', label: editingProduct ? 'Editar producto' : 'Agregar producto' },
           { key: 'list', label: `Productos activos (${activeProducts.length})` },
+          { key: 'categories', label: 'Categorías' },
           { key: 'discontinued', label: `Fuera de temporada (${discontinuedProducts.length})` },
           { key: 'pedidos', label: 'Pedidos' },
           { key: 'hero', label: 'Banner principal' },
@@ -269,6 +271,9 @@ export default function AdminPage({ products, onFetchProducts, loading, error })
         )
       )}
 
+      {tab === 'categories' && (
+        <CategoryManagerTab onCategoryUpdated={() => onFetchProducts()} />
+      )}
       {tab === 'hero' && <HeroTab />}
       {tab === 'pedidos' && <PedidosTab />}
     </div>
