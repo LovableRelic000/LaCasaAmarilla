@@ -122,25 +122,26 @@ export default function HomePage({ products = [], onOpenProduct, loading, error,
       {/* SECCIÓN ESPECIAL: MENÚ DE TEMPORADA */}
       {seasonalProducts.length > 0 && (
         <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-14">
-          <div className="bg-gradient-to-br from-amber-500/10 via-surface to-surface border border-amber-500/30 rounded-3xl p-6 sm:p-8">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+          <div className="bg-gradient-to-br from-amber-500/10 via-surface to-surface border border-amber-500/30 rounded-2xl sm:rounded-3xl p-4 sm:p-8">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
               <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
                   <TemporadaIcon className="w-3.5 h-3.5" />
                   <span>Ediciones Limitadas</span>
                 </span>
-                <h2 className="font-display text-2xl font-bold text-ink mt-0.5">
+                <h2 className="font-display text-xl sm:text-2xl font-bold text-ink mt-0.5 leading-snug">
                   Especiales de Temporada (Pan de Muerto y Festivos)
                 </h2>
               </div>
               <Link
                 to="/categoria/temporada"
-                className="px-5 py-2 rounded-full border border-amber-500/50 hover:bg-amber-500/15 text-xs font-bold text-ink transition-colors flex items-center gap-1.5"
+                className="px-4 sm:px-5 py-1.5 sm:py-2 rounded-full border border-amber-500/50 hover:bg-amber-500/15 text-xs font-bold text-ink transition-colors flex items-center gap-1.5 self-start sm:self-auto"
               >
                 <span>Ver todo el menú festivo</span>
                 <span>→</span>
               </Link>
             </div>
+
 
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
               {seasonalProducts.slice(0, 4).map((product) => (
