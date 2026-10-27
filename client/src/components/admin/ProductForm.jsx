@@ -13,9 +13,9 @@ const emptyForm = {
   // Atributos opcionales
   attributes: {
     hasMinOrder: false,
-    minOrder: 12,
-    orderStep: 12,
-    saleUnitLabel: 'docenas',
+    minOrder: 1,
+    orderStep: 1,
+    saleUnitLabel: 'piezas',
 
     isConchaBox: false,
 

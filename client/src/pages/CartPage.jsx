@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { WHATSAPP_PHONE, INSTAGRAM_USER } from '../config/contact';
+import { isDozenProduct } from '../utils/productUtils';
 
 export default function CartPage() {
   const navigate = useNavigate();
@@ -28,13 +29,21 @@ export default function CartPage() {
       const { product, quantity, options } = item;
       const unitPrice = getItemPrice(item);
       const subtotal = (unitPrice * quantity).toFixed(2);
-      mensaje += `${index + 1}. ${quantity}x ${product.name} — $${subtotal} MXN\n`;
+      const isDozen = options?.isDozen || isDozenProduct(product);
+
+      if (isDozen) {
+        const docenas = quantity / 12;
+        mensaje += `${index + 1}. ${docenas}x docena (${quantity} pzas) de ${product.name} — $${subtotal} MXN\n`;
+      } else {
+        mensaje += `${index + 1}. ${quantity}x ${product.name} — $${subtotal} MXN\n`;
+      }
 
       const optionsText = formatItemOptions(options);
       if (optionsText) {
         mensaje += `   ↳ ${optionsText}\n`;
       }
     });
+
 
     mensaje += `\nTotal estimado: $${totalPrice.toFixed(2)} MXN\n\n`;
     mensaje += 'Quedo al pendiente para confirmar método de pago y horario de entrega o recolección. ¡Muchas gracias!';
@@ -141,6 +150,28 @@ export default function CartPage() {
           const { cartItemId, product, quantity, options } = item;
           const unitPrice = getItemPrice(item);
           const optionsText = formatItemOptions(options);
+          const isDozen = options?.isDozen || isDozenProduct(product);
+          const step = isDozen ? 12 : 1;
+
+          const handleDecrease = () => {
+            if (isDozen) {
+              if (quantity > 12) {
+                updateQuantity(cartItemId, quantity - 12);
+              } else {
+                removeFromCart(cartItemId);
+              }
+            } else {
+              if (quantity > 1) {
+                updateQuantity(cartItemId, quantity - 1);
+              } else {
+                removeFromCart(cartItemId);
+              }
+            }
+          };
+
+          const handleIncrease = () => {
+            updateQuantity(cartItemId, quantity + step);
+          };
 
           return (
             <div
@@ -169,7 +200,7 @@ export default function CartPage() {
                     </div>
                   )}
                   <div className="text-xs text-ink-soft mt-1">
-                    ${unitPrice.toFixed(2)} MXN c/u
+                    ${unitPrice.toFixed(2)} MXN c/u {isDozen ? `(${(unitPrice * 12).toFixed(2)} por docena)` : ''}
                   </div>
                 </div>
               </div>
@@ -178,23 +209,31 @@ export default function CartPage() {
                 {/* Controles de cantidad */}
                 <div className="flex items-center border border-border rounded-full bg-surface-2">
                   <button
-                    onClick={() => updateQuantity(cartItemId, quantity - 1)}
+                    onClick={handleDecrease}
                     className="w-8 h-8 flex items-center justify-center text-ink hover:text-caramel font-bold text-base transition-colors"
                     aria-label="Disminuir cantidad"
                   >
                     −
                   </button>
-                  <span className="w-8 text-center text-sm font-bold text-ink">
-                    {quantity}
-                  </span>
+                  <div className="px-2 text-center flex flex-col items-center justify-center min-w-[2.5rem]">
+                    <span className="text-xs font-bold text-ink">
+                      {quantity}
+                    </span>
+                    {isDozen && (
+                      <span className="text-[10px] text-caramel font-bold leading-none">
+                        {quantity / 12} {quantity === 12 ? 'doc.' : 'docs.'}
+                      </span>
+                    )}
+                  </div>
                   <button
-                    onClick={() => updateQuantity(cartItemId, quantity + 1)}
+                    onClick={handleIncrease}
                     className="w-8 h-8 flex items-center justify-center text-ink hover:text-caramel font-bold text-base transition-colors"
                     aria-label="Aumentar cantidad"
                   >
                     +
                   </button>
                 </div>
+
 
                 {/* Subtotal y botón eliminar */}
                 <div className="flex items-center gap-3">

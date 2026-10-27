@@ -1,8 +1,8 @@
 // client/src/utils/productUtils.js
 import { getStoredCategories } from '../data/store';
 
-function parseAttrs(product) {
-  if (!product.attributes) return {};
+export function parseAttrs(product) {
+  if (!product || !product.attributes) return {};
   if (typeof product.attributes === 'string') {
     try {
       return JSON.parse(product.attributes);
@@ -12,6 +12,26 @@ function parseAttrs(product) {
   }
   return product.attributes;
 }
+
+// Determina si un producto es de venta exclusiva por docenas (Bollos de banquete y Pan de hamburguesa)
+export function isDozenProduct(product) {
+  if (!product) return false;
+  if (product.category === 'pan-hamburguesa' || product.category === 'pan-banquetes') {
+    return true;
+  }
+  const attrs = parseAttrs(product);
+  if (attrs.isDozenOnly) return true;
+  if (
+    attrs.hasMinOrder &&
+    (attrs.minOrder === 12 || attrs.orderStep === 12) &&
+    typeof attrs.saleUnitLabel === 'string' &&
+    attrs.saleUnitLabel.toLowerCase().includes('docena')
+  ) {
+    return true;
+  }
+  return false;
+}
+
 
 // Devuelve productos activos que coinciden con category/subcategory de una lista dinámica
 export function getProductsByPage(productsList, { category, subcategory }) {

@@ -3,18 +3,23 @@ import { useState, useEffect } from 'react';
 import { useCart } from '../../context/CartContext';
 import ConchaBoxBuilder from '../conchas/ConchaBoxBuilder';
 import { TemporadaIcon } from '../icons/BakeryIcons';
+import { isDozenProduct, parseAttrs } from '../../utils/productUtils';
 
 export default function ProductModal({ product, onClose }) {
   const { addToCart } = useCart();
-  const attributes = product?.attributes || {};
+  const attributes = parseAttrs(product);
 
   // Si es caja de conchas, delegamos directamente al constructor visual
   if (attributes.isConchaBox || product?.category === 'conchas') {
     return <ConchaBoxBuilder product={product} onClose={onClose} />;
   }
 
-  const step = attributes.orderStep || (attributes.hasMinOrder ? attributes.minOrder : 1) || 1;
-  const minQty = (attributes.hasMinOrder ? attributes.minOrder : 1) || 1;
+  // REGLA ESTRICTA DE DOCENAS:
+  // Solo los bollos de banquete y panes de hamburguesa se venden exclusivamente en docenas (12, 24, 36...)
+  // Todos los demás panes se venden de 1 en 1 iniciando en 1.
+  const isDozen = isDozenProduct(product);
+  const step = isDozen ? 12 : 1;
+  const minQty = isDozen ? 12 : 1;
 
   const [quantity, setQuantity] = useState(minQty);
   const [selectedFlavor, setSelectedFlavor] = useState(
@@ -37,16 +42,33 @@ export default function ProductModal({ product, onClose }) {
   // Cálculo de precio según tamaño
   const basePrice = Number(product.price) || 0;
   const selectedSizeObj = attributes.hasSizes && attributes.sizes ? attributes.sizes[selectedSizeIndex] : null;
-  const currentUnitPrice = basePrice + (selectedSizeObj?.priceAdjustment || 0);
+  const baseUnitPrice = basePrice + (selectedSizeObj?.priceAdjustment || 0);
+
+  // Si es docena, baseUnitPrice es el precio por docena completa (ej. 150),
+  // por lo que el precio por pieza es baseUnitPrice / 12
+  const unitPrice = isDozen ? baseUnitPrice / 12 : baseUnitPrice;
+  const currentTotal = isDozen ? (baseUnitPrice / 12) * quantity : baseUnitPrice * quantity;
 
   const handleAdd = () => {
     const options = {};
+    if (isDozen) {
+      options.isDozen = true;
+      options.price = unitPrice; // Precio unitario por pieza (ej. $12.50)
+      options.pricePerDozen = baseUnitPrice; // Precio por docena (ej. $150.00)
+      options.pieces = quantity;
+      options.dozens = quantity / 12;
+    } else if (selectedSizeObj) {
+      options.price = baseUnitPrice;
+    }
+
     if (selectedFlavor) options.flavor = selectedFlavor;
     if (selectedSizeObj) options.size = selectedSizeObj.label;
     if (customerNotes.trim()) options.customerNotes = customerNotes.trim();
-    if (selectedSizeObj) options.price = currentUnitPrice;
 
     const summaryParts = [];
+    if (isDozen) {
+      summaryParts.push(`${quantity / 12} ${quantity === 12 ? 'docena' : 'docenas'} (${quantity} pzas)`);
+    }
     if (selectedFlavor) summaryParts.push(`Sabor: ${selectedFlavor}`);
     if (selectedSizeObj) summaryParts.push(selectedSizeObj.label);
     if (options.customerNotes) summaryParts.push(`Nota: "${options.customerNotes}"`);
@@ -62,17 +84,18 @@ export default function ProductModal({ product, onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/70 backdrop-blur-sm p-4 overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/70 backdrop-blur-sm p-2 sm:p-4 overflow-hidden"
       onClick={onClose}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="product-modal-title"
-        className="bg-surface rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden max-h-[92vh] overflow-y-auto border border-border my-6"
+        className="bg-surface rounded-2xl sm:rounded-3xl shadow-2xl max-w-lg w-full max-h-[92vh] sm:max-h-[88vh] flex flex-col overflow-hidden border border-border animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="aspect-video sm:aspect-[4/3] bg-surface-2 relative overflow-hidden">
+        {/* Cabecera con imagen y botón cerrar siempre accesible */}
+        <div className="aspect-[16/9] sm:aspect-[4/3] max-h-56 sm:max-h-64 bg-surface-2 relative overflow-hidden flex-shrink-0">
           <img
             src={product.image}
             alt={product.name}
@@ -84,7 +107,7 @@ export default function ProductModal({ product, onClose }) {
           />
           <button
             onClick={onClose}
-            className="absolute top-3 right-3 bg-surface/90 hover:bg-surface text-ink rounded-full p-2.5 shadow-md transition-colors"
+            className="absolute top-3 right-3 bg-surface/90 hover:bg-surface text-ink rounded-full p-2.5 shadow-md transition-colors z-20"
             aria-label="Cerrar modal"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -100,20 +123,43 @@ export default function ProductModal({ product, onClose }) {
           )}
         </div>
 
-        <div className="p-6">
+        {/* Contenido scrolleable del producto */}
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1">
           <div className="flex items-start justify-between gap-4 mb-2">
-            <h2 id="product-modal-title" className="font-display text-2xl font-bold text-ink">
+            <h2 id="product-modal-title" className="font-display text-xl sm:text-2xl font-bold text-ink">
               {product.name}
             </h2>
-            <span className="font-hand text-3xl font-bold text-caramel whitespace-nowrap">
-              ${(currentUnitPrice * quantity).toFixed(2)}
-            </span>
+            <div className="text-right flex-shrink-0">
+              <span className="font-hand text-2xl sm:text-3xl font-bold text-caramel whitespace-nowrap block">
+                ${currentTotal.toFixed(2)} MXN
+              </span>
+              {isDozen && (
+                <span className="text-[11px] text-ink-soft block font-medium">
+                  ${baseUnitPrice.toFixed(2)} por docena
+                </span>
+              )}
+            </div>
           </div>
 
-          <p className="text-ink-soft text-sm leading-relaxed mb-4">{product.description}</p>
+          <p className="text-ink-soft text-xs sm:text-sm leading-relaxed mb-4">{product.description}</p>
 
-          {/* Avisos de anticipación o peso */}
-          <div className="flex flex-wrap gap-2 mb-5">
+          {/* LEYENDA DESTACADA PARA VENTA EXCLUSIVA POR DOCENAS */}
+          {isDozen && (
+            <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 mb-4">
+              <div className="font-bold flex items-center gap-2 text-xs sm:text-sm">
+                <svg className="w-4 h-4 text-caramel flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Venta exclusiva por docenas (12, 24, 36... piezas)</span>
+              </div>
+              <p className="mt-1 text-xs text-ink-soft leading-relaxed">
+                Este pan se elabora exclusivamente en lotes por docena. Cada docena cuesta ${baseUnitPrice.toFixed(2)} MXN (${(baseUnitPrice / 12).toFixed(2)} por pieza).
+              </p>
+            </div>
+          )}
+
+          {/* Avisos adicionales de anticipación o peso */}
+          <div className="flex flex-wrap gap-2 mb-4">
             {attributes.hasWeight && attributes.weight && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-surface-2 text-ink-soft border border-border">
                 <svg className="w-3.5 h-3.5 text-caramel" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -131,19 +177,11 @@ export default function ProductModal({ product, onClose }) {
                 <span>Requiere pedido con {attributes.advanceNoticeHours || 24}h de anticipación</span>
               </span>
             )}
-            {attributes.hasMinOrder && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-surface-2 text-caramel border border-border">
-                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                </svg>
-                <span>Venta por incrementos de {step} piezas</span>
-              </span>
-            )}
           </div>
 
           {/* Selector de Sabores */}
           {attributes.hasFlavors && attributes.flavors?.length > 0 && (
-            <div className="mb-5">
+            <div className="mb-4">
               <label className="block text-xs font-bold uppercase tracking-wider text-ink-soft mb-2">
                 Elige tu sabor:
               </label>
@@ -168,7 +206,7 @@ export default function ProductModal({ product, onClose }) {
 
           {/* Selector de Tamaños */}
           {attributes.hasSizes && attributes.sizes?.length > 0 && (
-            <div className="mb-5">
+            <div className="mb-4">
               <label className="block text-xs font-bold uppercase tracking-wider text-ink-soft mb-2">
                 Tamaño o presentación:
               </label>
@@ -196,7 +234,7 @@ export default function ProductModal({ product, onClose }) {
 
           {/* Alérgenos */}
           {attributes.hasAllergens && attributes.allergens?.length > 0 && (
-            <div className="mb-5 text-xs text-ink-soft flex items-center gap-1.5">
+            <div className="mb-4 text-xs text-ink-soft flex items-center gap-1.5">
               <span className="font-semibold text-ink">Alérgenos:</span>
               <span>{attributes.allergens.join(', ')}</span>
             </div>
@@ -204,7 +242,7 @@ export default function ProductModal({ product, onClose }) {
 
           {/* Notas o dedicatoria */}
           {attributes.allowCustomerNotes && (
-            <div className="mb-5">
+            <div className="mb-4">
               <label className="block text-xs font-semibold text-ink mb-1">
                 Dedicatoria o nota especial (opcional):
               </label>
@@ -217,54 +255,61 @@ export default function ProductModal({ product, onClose }) {
               />
             </div>
           )}
+        </div>
 
-          {/* Controles de Cantidad y Agregar */}
-          <div className="pt-4 border-t border-border flex items-center gap-4">
-            <div className="flex items-center border border-border rounded-full bg-surface-2">
-              <button
-                onClick={() => setQuantity((q) => Math.max(minQty, q - step))}
-                aria-label="Disminuir cantidad"
-                disabled={quantity <= minQty}
-                className="w-10 h-10 flex items-center justify-center text-ink hover:text-caramel font-bold text-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-              >
-                −
-              </button>
-              <span className="w-10 text-center font-bold text-sm text-ink">{quantity}</span>
-              <button
-                onClick={() => setQuantity((q) => q + step)}
-                aria-label="Aumentar cantidad"
-                className="w-10 h-10 flex items-center justify-center text-ink hover:text-caramel font-bold text-lg transition-colors"
-              >
-                +
-              </button>
-            </div>
-
+        {/* Footer fijo con Controles de Cantidad y Botón de Agregar (siempre accesible) */}
+        <div className="p-3.5 sm:p-5 border-t border-border bg-surface-2 flex items-center gap-3 sm:gap-4 flex-shrink-0">
+          <div className="flex items-center border border-border rounded-full bg-surface">
             <button
-              onClick={handleAdd}
-              disabled={addedToast}
-              className={`flex-1 py-3.5 px-6 rounded-full font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 ${
-                addedToast
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-gold hover:brightness-95 text-[#2B1B12]'
-              }`}
+              onClick={() => setQuantity((q) => Math.max(minQty, q - step))}
+              aria-label="Disminuir cantidad"
+              disabled={quantity <= minQty}
+              className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center text-ink hover:text-caramel font-bold text-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
-              {addedToast ? (
-                <>
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  ¡Agregado al carrito!
-                </>
-              ) : (
-                <>
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                  </svg>
-                  Agregar al carrito
-                </>
+              −
+            </button>
+            <div className="px-2 text-center flex flex-col items-center justify-center min-w-[3.5rem]">
+              <span className="font-bold text-sm text-ink">{quantity}</span>
+              {isDozen && (
+                <span className="text-[10px] font-bold text-caramel leading-tight">
+                  {quantity / 12} {quantity === 12 ? 'docena' : 'docenas'}
+                </span>
               )}
+            </div>
+            <button
+              onClick={() => setQuantity((q) => q + step)}
+              aria-label="Aumentar cantidad"
+              className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center text-ink hover:text-caramel font-bold text-lg transition-colors"
+            >
+              +
             </button>
           </div>
+
+          <button
+            onClick={handleAdd}
+            disabled={addedToast}
+            className={`flex-1 py-3 px-5 sm:px-6 rounded-full font-bold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 ${
+              addedToast
+                ? 'bg-emerald-600 text-white'
+                : 'bg-gold hover:brightness-95 text-[#2B1B12]'
+            }`}
+          >
+            {addedToast ? (
+              <>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>¡Agregado al carrito!</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+                <span>Agregar al carrito</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
     </div>

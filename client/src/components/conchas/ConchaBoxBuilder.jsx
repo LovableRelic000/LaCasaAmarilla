@@ -1,5 +1,5 @@
 // client/src/components/conchas/ConchaBoxBuilder.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useCart } from '../../context/CartContext';
 
 const FLAVORS = [
@@ -34,13 +34,17 @@ const FLAVORS = [
 
 const BOX_SIZES = [
   { size: 6, label: 'Media Docena', pieces: 6, price: 110, gridCols: 'grid-cols-3' },
-  { size: 12, label: 'Docena Completa', pieces: 12, price: 210, gridCols: 'grid-cols-3 sm:grid-cols-4' },
+  { size: 12, label: 'Docena Completa', pieces: 12, price: 210, gridCols: 'grid-cols-4 sm:grid-cols-6' },
 ];
 
 function ConchaGraphic({ flavorId, size = 'md' }) {
   const flavor = FLAVORS.find((f) => f.id === flavorId);
-  const isLg = size === 'lg';
-  const sizeClass = isLg ? 'w-16 h-16 sm:w-20 sm:h-20' : 'w-12 h-12 sm:w-14 sm:h-14';
+  const sizeClass =
+    size === 'lg'
+      ? 'w-9 h-9 sm:w-12 sm:h-12 md:w-14 md:h-14'
+      : size === 'sm'
+      ? 'w-7 h-7 sm:w-8 sm:h-8'
+      : 'w-8 h-8 sm:w-10 sm:h-10';
 
   if (!flavor) {
     return (
@@ -54,17 +58,17 @@ function ConchaGraphic({ flavorId, size = 'md' }) {
 
   return (
     <div
-      className={`relative ${sizeClass} rounded-full shadow-md flex items-center justify-center overflow-hidden transition-transform transform hover:scale-105`}
+      className={`relative ${sizeClass} rounded-full shadow-sm sm:shadow-md flex items-center justify-center overflow-hidden transition-transform transform hover:scale-105 flex-shrink-0`}
       style={{
         background: `radial-gradient(circle at 35% 35%, ${flavor.baseColor}, ${flavor.crustColor})`,
-        border: '3px solid rgba(255, 255, 255, 0.4)',
+        border: '2px solid rgba(255, 255, 255, 0.5)',
       }}
       title={`Concha de ${flavor.name}`}
     >
       {/* Patrón concha (arcos tradicionales) */}
       <svg
         viewBox="0 0 100 100"
-        className="w-full h-full opacity-70 p-1 pointer-events-none"
+        className="w-full h-full opacity-70 p-0.5 sm:p-1 pointer-events-none"
         fill="none"
         stroke="rgba(255, 255, 255, 0.75)"
         strokeWidth="3.5"
@@ -90,6 +94,14 @@ export default function ConchaBoxBuilder({ product, onClose }) {
   const [boxSlots, setBoxSlots] = useState(Array(6).fill(null));
   const [activeFlavor, setActiveFlavor] = useState('vainilla');
   const [addedSuccess, setAddedSuccess] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose?.();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   const currentBoxConfig = BOX_SIZES.find((b) => b.size === selectedBoxSize) || BOX_SIZES[0];
   const filledCount = boxSlots.filter(Boolean).length;
@@ -139,7 +151,6 @@ export default function ConchaBoxBuilder({ product, onClose }) {
   const handleSlotClick = (index) => {
     const next = [...boxSlots];
     if (next[index]) {
-      // If full, cycle to next flavor or remove
       next[index] = null;
     } else {
       next[index] = activeFlavor;
@@ -198,32 +209,36 @@ export default function ConchaBoxBuilder({ product, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/70 backdrop-blur-sm p-4 overflow-y-auto">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/70 backdrop-blur-sm p-2 sm:p-4 overflow-hidden"
+      onClick={onClose}
+    >
       <div
         role="dialog"
         aria-modal="true"
-        className="bg-surface border border-border rounded-3xl shadow-2xl max-w-2xl w-full my-6 overflow-hidden flex flex-col"
+        aria-labelledby="concha-builder-title"
+        className="bg-surface border border-border rounded-2xl sm:rounded-3xl shadow-2xl max-w-2xl w-full max-h-[92vh] sm:max-h-[88vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Cabecera del constructor */}
-        <div className="p-6 border-b border-border bg-surface-2 flex items-center justify-between">
-          <div>
+        {/* Cabecera fija del constructor (siempre visible) */}
+        <div className="p-3.5 sm:p-4 border-b border-border bg-surface-2 flex items-center justify-between flex-shrink-0">
+          <div className="pr-2">
             <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-gold/20 text-caramel">
+              <span className="px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider bg-gold/20 text-caramel">
                 Interactivo
               </span>
-              <h2 className="font-display text-2xl font-bold text-ink">
+              <h2 id="concha-builder-title" className="font-display text-lg sm:text-2xl font-bold text-ink">
                 Arma tu Caja de Conchas
               </h2>
             </div>
-            <p className="text-ink-soft text-sm mt-1">
-              Selecciona tu tamaño y llena la caja con tus sabores favoritos.
+            <p className="text-ink-soft text-xs sm:text-sm mt-0.5 line-clamp-1">
+              Selecciona tu tamaño y llena la caja con tus sabores favoritos
             </p>
           </div>
           {onClose && (
             <button
               onClick={onClose}
-              className="p-2 rounded-full hover:bg-surface text-ink-soft hover:text-ink transition-colors"
+              className="p-2 sm:p-2.5 rounded-full bg-surface border border-border hover:bg-surface-2 text-ink transition-colors flex-shrink-0 shadow-sm"
               aria-label="Cerrar modal"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -233,32 +248,33 @@ export default function ConchaBoxBuilder({ product, onClose }) {
           )}
         </div>
 
-        <div className="p-6 space-y-6">
-          {/* Selector de tamaño de caja */}
+        {/* Cuerpo scrolleable del modal */}
+        <div className="p-3 sm:p-5 overflow-y-auto flex-1 space-y-4">
+          {/* Selector de tamaño de caja (al inicio, visible inmediatamente) */}
           <div>
-            <label className="block text-sm font-semibold text-ink mb-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-ink-soft mb-2">
               1. Selecciona el tamaño de la caja:
             </label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
               {BOX_SIZES.map((box) => (
                 <button
                   key={box.size}
                   type="button"
                   onClick={() => handleSizeChange(box.size)}
-                  className={`p-3.5 rounded-2xl border-2 text-left transition-all ${
+                  className={`p-2.5 sm:p-3 rounded-xl sm:rounded-2xl border-2 text-left transition-all ${
                     selectedBoxSize === box.size
                       ? 'border-caramel bg-caramel/10 shadow-sm'
                       : 'border-border hover:border-caramel/50 bg-surface'
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-display font-bold text-ink">{box.label}</span>
-                    <span className="font-hand text-lg font-bold text-caramel">
+                    <span className="font-display font-bold text-ink text-sm sm:text-base">{box.label}</span>
+                    <span className="font-hand text-base sm:text-lg font-bold text-caramel">
                       ${box.price} MXN
                     </span>
                   </div>
-                  <span className="text-xs text-ink-soft block mt-0.5">
-                    {box.pieces} piezas artesanales
+                  <span className="text-[11px] sm:text-xs text-ink-soft block mt-0.5">
+                    {box.pieces} conchas artesanales
                   </span>
                 </button>
               ))}
@@ -266,10 +282,10 @@ export default function ConchaBoxBuilder({ product, onClose }) {
           </div>
 
           {/* Caja visual de panadería */}
-          <div className="bg-surface-2 rounded-3xl p-5 border border-border shadow-inner">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-caramel animate-pulse" />
+          <div className="bg-surface-2 rounded-2xl sm:rounded-3xl p-3 sm:p-4 border border-border shadow-inner">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-caramel animate-pulse" />
                 <span className="text-xs font-bold text-ink uppercase tracking-wider">
                   Caja de panadería ({filledCount}/{selectedBoxSize} conchas)
                 </span>
@@ -278,7 +294,7 @@ export default function ConchaBoxBuilder({ product, onClose }) {
                 <button
                   type="button"
                   onClick={handleFillEvenly}
-                  className="text-xs text-caramel hover:underline font-medium"
+                  className="text-xs text-caramel hover:underline font-semibold"
                 >
                   Surtido parejo
                 </button>
@@ -286,24 +302,24 @@ export default function ConchaBoxBuilder({ product, onClose }) {
                 <button
                   type="button"
                   onClick={handleClear}
-                  className="text-xs text-ink-soft hover:text-rust font-medium"
+                  className="text-xs text-ink-soft hover:text-rust font-semibold"
                 >
                   Vaciar
                 </button>
               </div>
             </div>
 
-            {/* Grid de la caja */}
-            <div className={`grid ${currentBoxConfig.gridCols} gap-4 justify-items-center py-2`}>
+            {/* Grid de la caja con conchas visuales */}
+            <div className={`grid ${currentBoxConfig.gridCols} gap-2 sm:gap-3 justify-items-center py-1 sm:py-2`}>
               {boxSlots.map((flavorId, idx) => (
                 <button
                   key={idx}
                   type="button"
                   onClick={() => handleSlotClick(idx)}
-                  className="flex flex-col items-center gap-1.5 focus:outline-none group"
+                  className="flex flex-col items-center gap-1 focus:outline-none group"
                 >
                   <ConchaGraphic flavorId={flavorId} size="lg" />
-                  <span className="text-[11px] font-medium text-ink-soft group-hover:text-caramel transition-colors">
+                  <span className="text-[10px] sm:text-[11px] font-medium text-ink-soft group-hover:text-caramel transition-colors truncate max-w-[70px] text-center">
                     {flavorId
                       ? FLAVORS.find((f) => f.id === flavorId)?.name
                       : `Espacio ${idx + 1}`}
@@ -313,14 +329,14 @@ export default function ConchaBoxBuilder({ product, onClose }) {
             </div>
 
             {/* Barra de progreso */}
-            <div className="mt-4 pt-3 border-t border-border/60">
-              <div className="w-full bg-surface h-2.5 rounded-full overflow-hidden border border-border">
+            <div className="mt-3 pt-2.5 border-t border-border/60">
+              <div className="w-full bg-surface h-2 rounded-full overflow-hidden border border-border">
                 <div
                   className="bg-gradient-to-r from-gold to-caramel h-full transition-all duration-300"
                   style={{ width: `${(filledCount / selectedBoxSize) * 100}%` }}
                 />
               </div>
-              <p className="text-xs text-ink-soft text-center mt-2 font-medium">
+              <p className="text-[11px] sm:text-xs text-ink-soft text-center mt-1.5 font-medium">
                 {isFull
                   ? '✓ ¡Tu caja está completa y lista para ordenar!'
                   : `Agrega ${selectedBoxSize - filledCount} conchas más para completar la caja.`}
@@ -330,30 +346,30 @@ export default function ConchaBoxBuilder({ product, onClose }) {
 
           {/* Panel de sabores y controles +/- */}
           <div>
-            <label className="block text-sm font-semibold text-ink mb-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-ink-soft mb-2">
               2. Elige las cantidades por sabor:
             </label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               {FLAVORS.map((flavor) => {
                 const count = counts[flavor.id];
                 return (
                   <div
                     key={flavor.id}
-                    className="p-3 rounded-2xl border border-border bg-surface flex flex-col justify-between gap-3 shadow-sm hover:border-caramel/40 transition-colors"
+                    className="p-2 sm:p-3 rounded-xl sm:rounded-2xl border border-border bg-surface flex items-center justify-between sm:flex-col sm:items-stretch gap-2 shadow-sm hover:border-caramel/40 transition-colors"
                   >
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex items-center gap-2">
                       <ConchaGraphic flavorId={flavor.id} size="sm" />
                       <div>
-                        <h4 className="font-semibold text-sm text-ink">{flavor.name}</h4>
-                        <span className="text-[11px] text-ink-soft block leading-tight">
+                        <h4 className="font-semibold text-xs sm:text-sm text-ink">{flavor.name}</h4>
+                        <span className="text-[10px] sm:text-[11px] text-ink-soft hidden sm:block leading-tight">
                           {flavor.description}
                         </span>
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between border-t border-border pt-2">
-                      <span className="text-xs text-ink-soft font-medium">Cantidad:</span>
-                      <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-between border-t-0 sm:border-t border-border sm:pt-2">
+                      <span className="text-[11px] text-ink-soft font-medium hidden sm:inline">Cantidad:</span>
+                      <div className="flex items-center gap-1.5">
                         <button
                           type="button"
                           onClick={() => removeFlavor(flavor.id)}
@@ -382,28 +398,23 @@ export default function ConchaBoxBuilder({ product, onClose }) {
           </div>
         </div>
 
-        {/* Footer con resumen y botón de compra */}
-        <div className="p-6 border-t border-border bg-surface-2 flex flex-col sm:flex-row items-center justify-between gap-4">
+        {/* Footer fijo con total y botón de compra (siempre visible) */}
+        <div className="p-3.5 sm:p-4 border-t border-border bg-surface-2 flex items-center justify-between gap-3 flex-shrink-0">
           <div>
-            <span className="text-xs text-ink-soft font-medium uppercase tracking-wider">
-              Total de la caja
+            <span className="text-[10px] sm:text-xs text-ink-soft font-medium uppercase tracking-wider block">
+              Total ({currentBoxConfig.label})
             </span>
-            <div className="flex items-baseline gap-2">
-              <span className="font-hand text-3xl font-bold text-caramel">
-                ${currentBoxConfig.price}.00 MXN
-              </span>
-              <span className="text-xs text-ink-soft">
-                ({currentBoxConfig.label})
-              </span>
-            </div>
+            <span className="font-hand text-2xl sm:text-3xl font-bold text-caramel">
+              ${currentBoxConfig.price}.00 MXN
+            </span>
           </div>
 
-          <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="flex items-center gap-2 sm:gap-3">
             {onClose && (
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 sm:flex-none px-5 py-3 border border-border hover:border-gold text-ink rounded-full font-semibold text-sm transition-colors"
+                className="px-4 sm:px-5 py-2.5 sm:py-3 border border-border hover:border-gold text-ink rounded-full font-semibold text-xs sm:text-sm transition-colors"
               >
                 Cancelar
               </button>
@@ -412,7 +423,7 @@ export default function ConchaBoxBuilder({ product, onClose }) {
               type="button"
               onClick={handleAddToCart}
               disabled={!isFull || addedSuccess}
-              className={`flex-1 sm:flex-none px-7 py-3 rounded-full font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 ${
+              className={`px-4 sm:px-7 py-2.5 sm:py-3 rounded-full font-bold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 ${
                 addedSuccess
                   ? 'bg-emerald-600 text-white'
                   : isFull
@@ -425,14 +436,14 @@ export default function ConchaBoxBuilder({ product, onClose }) {
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  ¡Caja agregada!
+                  <span>¡Caja agregada!</span>
                 </>
               ) : (
                 <>
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                   </svg>
-                  Agregar Caja al Carrito
+                  <span>Agregar al Carrito</span>
                 </>
               )}
             </button>
